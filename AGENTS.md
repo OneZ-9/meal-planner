@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project state
 
-Next.js app (App Router) for a "Meal Planner + Shopping List Generator" (see `app/layout.tsx` metadata). Still early — `app/page.tsx` renders just a heading. The stack (React Query, Zustand, shadcn/ui, Vitest) is wired up and ready, but no meal-planning domain logic, data layer, or additional routes exist yet.
+Next.js app (App Router) for a "Meal Planner + Shopping List Generator" (see `app/layout.tsx` metadata). Still early — `app/page.tsx` renders just a heading. The stack (React Query, Zustand, shadcn/ui, Vitest) is wired up and ready; MongoDB is connected via `lib/mongodb.ts`, but no collections, schemas, API routes, or meal-planning domain logic exist yet.
 
 Keep current — update whenever what's actually built meaningfully changes, same as Project structure below. `README.md`'s own "Project state" section should stay in sync too, as plain status for human readers.
 
@@ -44,10 +44,11 @@ Keep current — update whenever what's actually built meaningfully changes, sam
     - `app/providers.tsx` must keep `const [queryClient] = useState(() => new QueryClient())` — not a module-level `const queryClient = new QueryClient()` (leaks the cache across users/requests during SSR) and not an inline `new QueryClient()` in the render body (recreates the cache and cancels in-flight queries on every re-render).
   - **Local/client state shared across components** (UI state, form state, anything not fetched from a server): `zustand`. Create a store per feature, e.g. `features/<feature-name>/hooks/use<Feature>Store.ts`, and export it through that feature's `index.ts` barrel only if another feature actually needs it. `zustand` needs no provider — `create()` stores are usable directly.
   - State that only one component needs stays as plain `useState`/`useReducer` in that component — don't reach for `zustand` just because state exists.
+- **Database**: MongoDB via the official `mongodb` driver. `lib/mongodb.ts` exports `mongoClientPromise`, connected from `MONGODB_URI` and cached across HMR reloads in dev so it doesn't reconnect on every file save. Server-only — import it from API routes/server actions, never from client components. Client code still reaches this data exclusively through the React Query custom-hooks + `lib/api/` pattern above, calling those server routes rather than the database directly.
 - **Testing**: Vitest + React Testing Library + jsdom. Config is `vitest.config.mts` (the `.mts` extension avoids a CJS/ESM warning without setting `"type": "module"` in `package.json`); `vitest.setup.ts` loads `@testing-library/jest-dom` matchers. Tests are co-located next to source as `*.test.tsx` (see `app/page.test.tsx`). For components that read from `@tanstack/react-query` context (e.g. `useQuery`), use `renderWithProviders` from `test/test-utils.tsx` instead of `@testing-library/react`'s bare `render` — it wraps the tree in a fresh `QueryClientProvider` per test.
 - **Formatting**: Prettier with default rules (`.prettierrc.json` is intentionally empty); `.prettierignore` excludes `.next` and `node_modules`.
 - TypeScript is `strict`, with the `@/*` path alias mapped to the repo root (`tsconfig.json`); the same alias is mirrored in `vitest.config.mts` for tests.
-- **Environment variables**: Local overrides go in `.env.local` (gitignored via `.env*` in `.gitignore`); values the browser needs to read must be prefixed `NEXT_PUBLIC_`. `.env.example` documents the current names (`MONGODB_URI`, `PORT`) with empty values — it must be force-added to git (`git add -f`) since `.gitignore` ignores all `.env*` files by default. `MONGODB_URI` isn't consumed by any code yet (no data layer exists — see Project state).
+- **Environment variables**: Local overrides go in `.env.local` (gitignored via `.env*` in `.gitignore`); values the browser needs to read must be prefixed `NEXT_PUBLIC_`. `.env.example` documents the current names (`MONGODB_URI`, `PORT`) with empty values — it must be force-added to git (`git add -f`) since `.gitignore` ignores all `.env*` files by default.
   - `PORT` in `.env.local` does **not** actually change the dev/start server's bound port — verified empirically: Next's CLI resolves the port from a real OS-level `PORT` env var before `.env.local` is loaded, so the file value is too late to matter. To actually change the port, export `PORT` at the shell (e.g. `PORT=4321 npm run dev`) or update the `dev`/`start` scripts in `package.json` to pass `-p` explicitly (needs sign-off per the "don't rewrite config" rule above).
 
 ## Project structure
@@ -61,7 +62,7 @@ Keep current — update whenever what's actually built meaningfully changes, sam
 │   ├── providers.tsx
 │   └── globals.css
 ├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── lib/               # Shared helpers (lib/utils.ts today; lib/api/ once queries exist)
+├── lib/               # Shared helpers: utils.ts, mongodb.ts (lib/api/ once queries exist)
 ├── test/              # Shared test helpers (test/test-utils.tsx)
 ├── public/            # Static assets
 ├── components.json    # shadcn/ui config

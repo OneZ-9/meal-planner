@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). No environment variables are required yet — see `.env.local` if that changes.
+Open [http://localhost:3000](http://localhost:3000). Requires a running MongoDB instance and a `MONGODB_URI` in `.env.local` — see `.env.example`.
 
 ## Scripts
 
@@ -24,6 +24,7 @@ Open [http://localhost:3000](http://localhost:3000). No environment variables ar
 
 - Next.js 16 (App Router) + React 19, TypeScript (strict)
 - Tailwind CSS v4 + shadcn/ui (base-ui primitives, not Radix)
+- MongoDB for storage
 - TanStack React Query for remote/server state, Zustand for local/client state
 - Vitest + React Testing Library for tests
 
@@ -33,4 +34,4 @@ Project conventions — feature-folder structure, state management rules, code s
 
 ## Project state
 
-Early stage: the app currently renders a placeholder home page. No meal-planning domain logic, data layer, or additional routes exist yet.
+Early stage: the app currently renders a placeholder home page. MongoDB is connected, but no collections, API routes, or meal-planning domain logic exist yet.
