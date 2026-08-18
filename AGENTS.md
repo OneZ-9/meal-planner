@@ -10,7 +10,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project state
 
-Next.js app (App Router) for a "Meal Planner + Shopping List Generator" (see `app/layout.tsx` metadata). Still early — `app/page.tsx` renders just a heading. The stack (React Query, shadcn/ui, Vitest) is wired up and ready, but no meal-planning domain logic, data layer, or additional routes exist yet.
+Next.js app (App Router) for a "Meal Planner + Shopping List Generator" (see `app/layout.tsx` metadata). Still early — `app/page.tsx` renders just a heading. The stack (React Query, Zustand, shadcn/ui, Vitest) is wired up and ready, but no meal-planning domain logic, data layer, or additional routes exist yet.
+
+Keep this section current — update it whenever a change meaningfully shifts what's actually built vs. not (a new route, the first feature landing, a data layer appearing), the same way the Project structure tree below is kept in sync. Don't let it drift into a stale snapshot. `README.md` has its own "Project state" section aimed at human readers (it's public in the repo) — keep that one in sync too, but as plain project status, not agent instructions.
 
 ## Commands
 
