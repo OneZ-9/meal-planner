@@ -12,7 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Next.js app (App Router) for a "Meal Planner + Shopping List Generator" (see `app/layout.tsx` metadata). Still early — `app/page.tsx` renders just a heading. The stack (React Query, Zustand, shadcn/ui, Vitest) is wired up and ready, but no meal-planning domain logic, data layer, or additional routes exist yet.
 
-Keep this section current — update it whenever a change meaningfully shifts what's actually built vs. not (a new route, the first feature landing, a data layer appearing), the same way the Project structure tree below is kept in sync. Don't let it drift into a stale snapshot. `README.md` has its own "Project state" section aimed at human readers (it's public in the repo) — keep that one in sync too, but as plain project status, not agent instructions.
+Keep current — update whenever what's actually built meaningfully changes, same as Project structure below. `README.md`'s own "Project state" section should stay in sync too, as plain status for human readers.
 
 ## Commands
 
@@ -35,7 +35,7 @@ Keep this section current — update it whenever a change meaningfully shifts wh
 - **Styling**: Tailwind CSS v4 via the `@tailwindcss/postcss` plugin — no `tailwind.config.js`/`.ts`; theme tokens live in `app/globals.css` under `@theme inline` and `:root`/`.dark`.
 - **Components**: shadcn/ui, configured via `components.json` (style `base-nova`, base color `neutral`). Generated primitives live in `components/ui/` (e.g. `components/ui/button.tsx`); the `cn()` class-merge helper is in `lib/utils.ts`. Add new components with `npx shadcn@latest add <name>` rather than hand-writing files in `components/ui/`, so they stay in sync with the generated variant/style conventions. Theme customization happens via the CSS custom properties in `app/globals.css`, not a Tailwind config file (v4 has none).
   - This install uses shadcn's **base-ui** primitive library (`@base-ui/react`), not Radix — expect `@base-ui/react/*` imports in generated components, not `@radix-ui/*`.
-- **Fonts**: loaded via `next/font/google` in `app/layout.tsx` — Inter mapped to the CSS variable `--font-sans`, Geist Mono mapped to `--font-mono`. The variable name must match exactly what `app/globals.css`'s `@theme inline` block references (`--font-sans: var(--font-sans)`), otherwise the font silently falls back to the browser default instead of erroring.
+- **Fonts**: loaded via `next/font/google` in `app/layout.tsx` — Inter mapped to the CSS variable `--font-sans`, Geist Mono mapped to `--font-mono`. Must match exactly what `app/globals.css`'s `@theme inline` block references, or the font silently falls back to default.
 - **State management**: split by where the data lives — never duplicate the same value in both.
   - **Remote/server state** (anything fetched from an API): `@tanstack/react-query`, always behind a custom hook — components never call `useQuery`/`useMutation`/`useInfiniteQuery` directly. `QueryClient` is created and provided via the client component `app/providers.tsx`, which wraps `children` inside `app/layout.tsx`.
     - Raw network calls live in `lib/api/` (create it when the first API call is added), e.g. `lib/api/meals.ts` exporting `fetchMeals()`, `createMeal()`.
@@ -96,12 +96,6 @@ This reflects the current layout — update it here as the structure actually ch
 - Use meaningful names for variables, functions, props, and parameters — avoid generic names (`data`, `item`, `temp`) or single letters, outside of trivial, obvious scopes like a one-line array callback.
 - Don't duplicate logic across multiple places — extract it into a function, export it, and import it everywhere it's needed (DRY).
 
-**Naming conventions:**
-
-- Functions: camelCase (`getUserData`, `calculateTotal`)
-- Classes: PascalCase (`UserService`, `DataController`)
-- Constants: UPPER_SNAKE_CASE (`API_KEY`, `MAX_RETRIES`)
-
 ## Page and Layout file conventions
 
 All `page.tsx` and `layout.tsx` files in `app/` must follow these rules:
@@ -117,14 +111,6 @@ All `page.tsx` and `layout.tsx` files in `app/` must follow these rules:
 - Always destructure props in the function signature.
 - Named exports only. Never default exports — except `page.tsx`, `layout.tsx`, and `route.ts` files, which Next.js requires to be default exports (see Page and Layout file conventions above).
 
-Illustrative pattern only — `UserCard` isn't a real component in this repo:
-
-```tsx
-export const UserCard = ({ name, email }: UserCardProps) => {
-  return <div className="p-4">{name}</div>;
-};
-```
-
 ## Documentation
 
 - Be concise, specific, and value dense
@@ -136,10 +122,7 @@ export const UserCard = ({ name, email }: UserCardProps) => {
 
 No API routes or auth exist yet, but once they do:
 
-- Validate all inputs on the server side (API routes, server actions) — never trust client-supplied data.
-- Use HTTP-only, secure cookies and CSRF protection for any session/auth flow.
-- Protect authenticated routes via middleware or explicit session checks, not client-side redirects alone.
-- Do not modify auth without explicit instruction.
-- Never log secrets or tokens.
-- If unsure about a migration, stop and ask.
-- Never commit .env or any file containing secrets.
+- Validate all inputs server-side (API routes, server actions) — never trust client-supplied data.
+- Use HTTP-only, secure cookies and CSRF protection for any session/auth flow; protect authenticated routes via middleware or explicit session checks, not client-side redirects alone.
+- Never log secrets/tokens or commit `.env`/secret-bearing files.
+- Do not modify auth without explicit instruction; if unsure about a migration, stop and ask.
