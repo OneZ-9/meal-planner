@@ -37,9 +37,17 @@ everyone points at the same Atlas cluster during the 2-week delivery
 (single shared dev database, per Scope: single-tenant app, small team).
 
 Seed data: the 148-item canonical ingredient list lives in
-`data/ingredients-seed-data.js`. Load it with
-`node --env-file=.env.local scripts/seed-ingredients.mjs` — idempotent,
-upserts by ingredient name, safe to re-run.
+`data/ingredients-seed-data.js`. It's also seeded automatically —
+`instrumentation.ts` (`register()`) runs `lib/seedIngredients.ts` once when
+the Next.js server starts: it counts global ingredients (`userId: null`)
+and inserts the seed list only if none exist, logging either
+`"Seeded ingredient list already present (N items)."` or
+`"No initial ingredients list found. Inserted seeded ingredient list (N items)."`
+A DB error here is logged, not thrown, so the server still starts against a
+placeholder `MONGODB_URI` for UI-only work. To seed manually instead (e.g.
+against a different environment), run
+`node --env-file=.env.local scripts/seed-ingredients.mjs` — also idempotent,
+upserts by ingredient name.
 
 ## Conventions
 
