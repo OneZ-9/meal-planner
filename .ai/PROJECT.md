@@ -74,9 +74,6 @@ Two specific failure modes drive this:
   ingredient → g) requires ingredient density data and is deferred.
 - **Calendar slot** — one (day, meal) cell in the weekly calendar. MVP
   allows exactly one recipe per slot.
-- **Module** — one of the five MVP modules (Auth, Ingredients/Recipes,
-  Calendar, Shopping List, Checklist). Each has a single owning developer
-  per `CODEOWNERS`.
 
 ## Directory map
 
