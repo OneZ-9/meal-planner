@@ -1,3 +1,33 @@
+## DESIGN.md coverage + globals.css token mapping
+
+`DESIGN.md` originally listed all 6 reference screenshots but only documented
+Dashboard and Recipe Library in detail; Login, Calendar, Create Recipe, and
+Shopping List were referenced but never specified. Added full sections for
+all four (renumbered the doc; no external references to the old section
+numbers existed). Also retuned `app/globals.css`'s shadcn/Tailwind CSS
+variables (`--primary`, `--background`, `--border`, etc., previously
+shadcn-default `oklch(...)` values) to the exact hex values from `DESIGN.md`
+Section 2, with an explicit mapping table added as Section 2.3.
+
+**Rationale:** components should style via semantic Tailwind classes
+(`bg-primary`, `text-foreground`, ...) backed by `globals.css`, not hex
+literals — so `globals.css` needs to actually match the spec for that to
+work. Two shadcn slots have no 1:1 equivalent in `DESIGN.md`'s token list and
+required a judgment call: `--muted-foreground` was mapped to
+`--color-text-secondary` (`#41536A`) rather than `--color-text-muted`
+(`#68798D`), since shadcn uses that slot broadly (labels, descriptions) and
+the lighter value risked failing contrast in more contexts; `--ring` (focus
+ring) was mapped to `--color-primary` (`#006C49`) since `DESIGN.md` has no
+dedicated focus-ring token and the brand green is the visible-focus color
+implied by Section 35 (Interaction States). Dark mode (`.dark` block) was
+left untouched and flagged with a comment — `DESIGN.md` Section 1 describes a
+light-only aesthetic and no reference screenshot shows a dark variant, so
+inventing dark-mode values would be exactly the kind of unrequested
+extrapolation `DESIGN.md`'s Agent Implementation Rules warn against.
+
+If this mapping ever needs to change, update both files together —
+`DESIGN.md` Section 2.3 documents the pairing so they don't drift.
+
 ## Auth approach
 
 Standard email + password login (bcrypt for hashing, NextAuth.js for

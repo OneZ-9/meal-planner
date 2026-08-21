@@ -8,14 +8,14 @@ It is written so that a coding/design agent can implement the UI without relying
 
 ### Design reference
 
-The UI is based on the provided Google Stitch prototype and the supplied reference screenshots:
+The UI is based on the provided Google Stitch prototype and the supplied reference screenshots. Every reference screenshot has a corresponding numbered section below — an agent should never need to open the image to implement the screen.
 
-- login reference :`docs/design-reference/login.png`
-- Dashboard reference: `docs/design-reference/dashboard.png`
-- calendar reference: `docs/design-reference/calendar.png`
-- create-recipe reference: `docs/design-reference/create-recipe.png`
-- shopping-list reference: `docs/design-reference/shopping-list.png`
-- Recipe Library reference: `docs/design-reference/recipes.png`
+- login reference: `docs/design-reference/login.png` → Section 9, Login Screen
+- Dashboard reference: `docs/design-reference/dashboard.png` → Sections 10–17, Dashboard Screen
+- calendar reference: `docs/design-reference/calendar.png` → Section 28, Calendar / Weekly Plan Screen
+- create-recipe reference: `docs/design-reference/create-recipe.png` → Section 29, Create Recipe Screen
+- shopping-list reference: `docs/design-reference/shopping-list.png` → Section 30, Shopping List Screen
+- Recipe Library reference: `docs/design-reference/recipes.png` → Sections 18–27, Recipe Library Screen
 
 When implementing a screen, preserve the **visual hierarchy, proportions, spacing, colors, typography, borders, radii, and interaction patterns** described below.
 
@@ -55,6 +55,8 @@ Do **not** introduce:
 # 2. Core Design Tokens
 
 Use semantic variables. Components must not hard-code these values independently.
+
+These tokens are the source of truth and must be mirrored in `app/globals.css` (the shadcn/Tailwind CSS variables). See the mapping table in 2.3 — if a value in this section changes, update `app/globals.css` in the same change so the running app and this document never drift apart.
 
 ## 2.1 Colors
 
@@ -105,15 +107,37 @@ The supplied screenshots indicate the following core palette.
 | `#FFFFFF` | Cards, navigation, inputs, primary surfaces                  |
 | `#EFF4FF` | Metric cards, sidebar/background accents                     |
 | `#006C49` | Brand, primary buttons, active navigation, positive emphasis |
+| `#006C49` | Solid card background for a high-emphasis summary panel (e.g. Shopping List's "List Progress" card) |
 | `#0B1C30` | Main headings and important text                             |
-| `#41536A` | Secondary text                                               |
-| `#68798D` | Supporting/meta text                                         |
+| `#41536A` | Secondary text                                                |
+| `#68798D` | Supporting/meta text                                          |
 | `#D6DDE5` | Card and control borders                                     |
 | `#DAE2FD` | Selected navigation/filter background                        |
-| `#D92D3A` | Missing/error status                                         |
-| `#E8F5EF` | Soft positive/brand background                               |
+| `#D92D3A` | Missing/error status                                          |
+| `#E8F5EF` | Soft positive/brand background                                |
 
 Do not use pure black for normal text.
+
+## 2.3 Token → `globals.css` mapping
+
+`app/globals.css` defines these tokens under the shadcn/Tailwind variable names, consumed via semantic Tailwind classes (`bg-background`, `text-foreground`, `bg-primary`, etc.). Do not hard-code hex values in components — use the Tailwind classes so a future palette change only requires editing `app/globals.css`.
+
+| This spec (`--color-*`)     | `app/globals.css` variable                          |
+| ---------------------------- | ---------------------------------------------------- |
+| `--color-background`         | `--background`                                       |
+| `--color-text-primary`       | `--foreground`, `--card-foreground`, `--popover-foreground`, `--accent-foreground` |
+| `--color-surface`             | `--card`, `--popover`                                 |
+| `--color-primary`             | `--primary`, `--sidebar-primary`, `--ring`, `--sidebar-ring` |
+| `--color-on-primary`          | `--primary-foreground`, `--sidebar-primary-foreground` |
+| `--color-surface-muted`       | `--secondary`, `--muted`, `--sidebar`                 |
+| `--color-text-secondary`      | `--secondary-foreground`, `--muted-foreground`, `--sidebar-foreground` |
+| `--color-selected`            | `--accent`, `--sidebar-accent`                        |
+| `--color-border`              | `--border`, `--input`, `--sidebar-border`             |
+| `--color-error`               | `--destructive`                                       |
+
+`--radius` in `app/globals.css` is `0.625rem` (10px), which drives the `radius-sm`/`md`/`lg`/`xl` scale via the multipliers already declared in the `@theme inline` block. That scale lands on `6px`/`8px`/`10px`, matching Section 5 exactly; `radius-xl` computes to `14px` rather than the `12px` in Section 5 — a known, accepted 2px deviation rather than a bug (changing the multiplier would also shift `radius-2xl`/`3xl`/`4xl`).
+
+Dark mode is **not** specified by this document — Section 1 describes a light-only aesthetic and no reference screenshot shows a dark variant. The `.dark` block in `app/globals.css` is a shadcn-default placeholder, not governed by this spec. Do not extend dark-mode support without an explicit product decision (see `.ai/DECISIONS.md`).
 
 ---
 
@@ -133,6 +157,8 @@ font-family:
   "Segoe UI",
   sans-serif;
 ```
+
+The project already loads Inter via `next/font/google` in `app/layout.tsx` (`--font-sans`), consumed by `app/globals.css`'s `font-sans` on `html`. Do not add a second font family.
 
 ## Typography scale
 
@@ -235,11 +261,13 @@ border: 1px solid var(--color-border);
 
 Do not give every card a strong shadow.
 
+The one exception is a screen with no persistent surface behind it (currently only the Login screen, Section 9): its card may use `--shadow-overlay` since it is the sole focal element on the page.
+
 ---
 
 # 7. Application Shell
 
-The application has a persistent top navigation bar.
+The application has a persistent top navigation bar on every authenticated screen (Dashboard, Recipe Library, Calendar, Shopping List). The Login screen (Section 9) does not use this shell.
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
@@ -331,9 +359,83 @@ Do not stretch content unnecessarily to the full viewport.
 
 ---
 
-# 9. Dashboard Screen
+# 9. Login Screen
 
-## 9.1 Header area
+Reference: `docs/design-reference/login.png`.
+
+Unlike every other screen, Login does **not** use the Application Shell (Section 7) — there is no top navigation, since the user is not yet authenticated.
+
+## Layout
+
+A single card is centered both horizontally and vertically on the application background (`--color-background`).
+
+```text
+┌───────────────────────────────┐
+│           (utensils)          │
+│         MealPrep Pro          │
+│  Plan your meals, shop smarter │
+│                                │
+│  Email                        │
+│  [ Enter your email        ]  │
+│                                │
+│  Password      Forgot Password?│
+│  [ Enter your password     ]  │
+│                                │
+│  [        Sign In          ]  │
+│                                │
+│   IT Support  •  Privacy Policy│
+└───────────────────────────────┘
+```
+
+## Card
+
+- Background: `--color-surface` (white).
+- Width: approximately `400–440px`, responsive with side margins below that.
+- Border radius: `--radius-xl` (12px).
+- Uses `--shadow-overlay` (the single exception noted in Section 6) since it is the only surface on the page.
+- Internal padding: approximately `32–40px`.
+- All content centered.
+
+## Icon
+
+- Circular container, approximately `56–64px` diameter.
+- Background: `--color-surface-muted` (pale blue).
+- Centered outline utensils (fork/knife) icon in `--color-primary`.
+
+## Brand and subtitle
+
+- "MealPrep Pro": bold, dark navy, approximately `24–26px`, centered, directly below the icon.
+- "Plan your meals, shop smarter.": secondary text, approximately `14px`, centered.
+
+## Form fields
+
+- Field label ("Email", "Password"): bold, small, dark navy, above the input.
+- "Forgot Password?" sits on the same row as the "Password" label, right-aligned, primary green, small, semibold — a link, not a button.
+- Inputs: full card width, `--color-surface-muted` or a very light gray background, `1px` `--color-border`, `--radius-md` (8px), comfortable padding (~`12px`).
+
+## Primary action
+
+```css
+background: var(--color-primary);
+color: var(--color-on-primary);
+border-radius: 8px;
+height: ~44-48px;
+font-weight: 600;
+width: 100%;
+```
+
+"Sign In" is full width and visually dominant — the only solid-color element in the card besides the icon accent.
+
+## Footer
+
+- Below the button, centered, small, muted text: `IT Support` and `Privacy Policy` separated by a `•` bullet.
+- Plain text/links, no button styling.
+
+---
+
+# 10. Dashboard Screen
+
+## 10.1 Header area
 
 The Dashboard starts with:
 
@@ -369,7 +471,7 @@ Main dashboard content
 
 ---
 
-# 10. Dashboard Main Grid
+# 11. Dashboard Main Grid
 
 The main dashboard area uses a two-column layout.
 
@@ -398,7 +500,7 @@ The right panel contains actions.
 
 ---
 
-# 11. Weekly Plan Card
+# 12. Weekly Plan Card
 
 Card:
 
@@ -427,7 +529,7 @@ Date range:
 
 ---
 
-# 12. Weekly Metrics
+# 13. Weekly Metrics
 
 Four equal metric cards appear in one row.
 
@@ -454,7 +556,7 @@ Do not turn the metric cards into large analytics widgets.
 
 ---
 
-# 13. Today's Highlights
+# 14. Today's Highlights
 
 Separated from metrics by a thin horizontal divider.
 
@@ -503,7 +605,7 @@ Missing state:
 
 ---
 
-# 14. Dashboard Action Column
+# 15. Dashboard Action Column
 
 The right column begins with a full-width primary button:
 
@@ -554,7 +656,7 @@ Each action card:
 
 ---
 
-# 15. Suggested for You
+# 16. Suggested for You
 
 Below the main dashboard grid:
 
@@ -576,7 +678,7 @@ Section heading:
 
 ---
 
-# 16. Food Image Cards
+# 17. Food Image Cards
 
 The dashboard displays a horizontal row of food recommendations.
 
@@ -606,7 +708,7 @@ Do not distort food images.
 
 ---
 
-# 17. Recipe Library Screen
+# 18. Recipe Library Screen
 
 The Recipe Library differs from Dashboard by introducing a left filter sidebar.
 
@@ -626,7 +728,7 @@ Overall structure:
 
 ---
 
-# 18. Recipe Sidebar
+# 19. Recipe Sidebar
 
 Width is approximately `156–190px` in the supplied viewport.
 
@@ -676,7 +778,7 @@ The active filter (`All Recipes`) has:
 
 ---
 
-# 19. Recipe Library Header
+# 20. Recipe Library Header
 
 Main content starts with:
 
@@ -706,7 +808,7 @@ The Create Recipe button uses the same primary green style as Dashboard.
 
 ---
 
-# 20. Recipe Search
+# 21. Recipe Search
 
 On the Recipe Library screen, the global header contains a search field.
 
@@ -732,7 +834,7 @@ Search is visually secondary to the page title and Create Recipe action.
 
 ---
 
-# 21. Recipe Cards
+# 22. Recipe Cards
 
 Recipe cards use a consistent structure:
 
@@ -763,7 +865,7 @@ Card:
 
 ---
 
-# 22. Recipe Image
+# 23. Recipe Image
 
 Image occupies the full width of the upper card section.
 
@@ -783,7 +885,7 @@ The image should touch the card's top corners.
 
 ---
 
-# 23. Recipe Time Badge
+# 24. Recipe Time Badge
 
 Time appears over the image in the top-right.
 
@@ -803,7 +905,7 @@ Style:
 
 ---
 
-# 24. Recipe Card Content
+# 25. Recipe Card Content
 
 Title:
 
@@ -844,7 +946,7 @@ Do not make tags visually dominant.
 
 ---
 
-# 25. Recipe Card Footer
+# 26. Recipe Card Footer
 
 A thin divider separates content from footer.
 
@@ -869,7 +971,7 @@ Delete is a destructive action and should use the destructive confirmation patte
 
 ---
 
-# 26. Empty Recipe Image State
+# 27. Empty Recipe Image State
 
 If a recipe has no image, use a light blue image placeholder.
 
@@ -892,7 +994,218 @@ Do not use a random stock image when the recipe has no image.
 
 ---
 
-# 27. Iconography
+# 28. Calendar / Weekly Plan Screen
+
+Reference: `docs/design-reference/calendar.png`. Uses the Application Shell (Section 7); "Calendar" is the active nav item.
+
+## Header
+
+```text
+Weekly Plan                                  ‹  Today  ›
+Oct 23 – Oct 29, 2023
+```
+
+- Title: approximately 26px, bold, dark navy — matches the Dashboard/Recipe Library page-title treatment.
+- Date range subtitle: secondary text, directly below the title, small.
+- Right-aligned week navigation cluster: `‹` (prev week, icon button), `Today` (pill/button, white surface with border), `›` (next week, icon button). All three are compact, white background, thin border, rounded, grouped tightly together.
+
+## Weekly grid
+
+A single card (white surface, 1px border, rounded corners) contains the full week grid.
+
+```text
+┌──────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+│ Meal │ Mon │ Tue │ Wed │ Thu │ Fri │ Sat │ Sun │
+├──────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+│Break-│     │chip │     │     │chip │     │     │
+│fast  │     │     │     │     │     │     │     │
+├──────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+│Lunch │     │chip │chip │chip │     │     │     │
+├──────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+│Dinner│     │chip │chip │     │     │chip │     │
+└──────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+```
+
+- Header row: `--color-surface-muted` background, weekday abbreviation (bold, small) stacked over the day-of-month number (regular, small, secondary text).
+- Leftmost column: meal-slot labels (`Breakfast`, `Lunch`, `Dinner`), narrower than the day columns, secondary text.
+- Grid lines: `1px` `--color-border` between every row and column.
+- Empty cells: blank, `--color-surface`. Do not render a placeholder icon or "add meal" affordance unless a product requirement adds one — the reference shows plain empty cells.
+
+## Meal chip
+
+Each planned meal is a small chip filling most of its cell:
+
+```text
+┌────────────────────┐
+│ Salmon & Quinoa   ⋮ │
+│ ⏱ 30m               │
+└────────────────────┘
+```
+
+- Background: `--color-primary-soft` (`#E8F5EF`).
+- Border radius: `--radius-md` (8px).
+- Recipe name: dark navy, small, semibold, truncates rather than wraps to a third line.
+- Metadata row: small clock icon + prep time (`--color-text-secondary`).
+- Kebab (`⋮`) menu icon at the top-right of the chip, muted icon color, opens per-meal actions (edit/remove) — do not render it as a full button with a border; it should sit flush inside the chip like the recipe-card edit/delete icons in Section 26.
+
+Do not use a different green than `--color-primary-soft` for the chip background — it must read as the same "planned" affordance across Dashboard highlights and the Calendar grid.
+
+---
+
+# 29. Create Recipe Screen
+
+Reference: `docs/design-reference/create-recipe.png`. Uses the Application Shell (Section 7); "Recipes" is the active nav item (this screen is reached from Recipe Library).
+
+## Header
+
+```text
+← Back to Recipes
+
+Create New Recipe
+Fill in the details to add a new meal to your collection.
+```
+
+- "← Back to Recipes": muted text with a leading chevron, small, sits above the page title, acts as a link back to Section 18 (Recipe Library).
+- Title: approximately 26px, bold, dark navy — same page-title treatment as other screens.
+- Subtitle: approximately 14px, muted text.
+
+## Form container
+
+A single white card (1px border, `--radius-lg`, internal padding ~24px) holds three sub-sections, each separated by a thin `--color-border` divider. Each sub-section has a heading row: a small `--color-primary` outline icon + a semibold ~16px dark-navy label.
+
+### 29.1 Recipe Basics
+
+Icon: utensils/scissors.
+
+- **Recipe Name** — full-width text input, placeholder e.g. `e.g. Lemon Herb Roasted Chicken`.
+- **Prep Time (mins)** and **Servings** — two numeric stepper inputs side by side, each roughly half width, with up/down stepper controls.
+- **Categories / Tags** — a row of toggle pill chips (e.g. `Breakfast`, `Dinner`, `Vegan`, `Gluten-Free`):
+  - Unselected: white/`--color-surface` background, `1px` `--color-border`, `--color-text-secondary` text.
+  - Selected: `--color-primary-soft` background, `--color-primary` border and text (matches the recipe-card tag styling in Section 25).
+  - Trailing `+ Add Tag` control uses a dashed/outline pill in the unselected style.
+
+### 29.2 Ingredients
+
+Icon: list/grid.
+
+Each ingredient is one row:
+
+```text
+⠿  [ 2 ] [ lbs ▾ ]  Chicken Breast                    🗑
+⠿  [ 1 ] [tbsp▾]  Olive Oil                          🗑
+⠿  [Qty] [Unit▾]  Search or type ingredient...
+```
+
+- `⠿` drag handle: muted icon, far left, indicates rows are reorderable.
+- Quantity: narrow numeric input.
+- Unit: narrow select/dropdown.
+- Ingredient name: wide text input, supports typeahead (`Search or type ingredient...` placeholder on the empty template row) — see `.ai/Unit_Conversion_Algorithm_Spec.md` for how quantity/unit feed shopping-list generation (US-3, US-7).
+- Trash icon button at the row end, same icon-button treatment as Section 26's edit/delete icons.
+- Below the rows: `+ Add Another Ingredient` — primary green, small, semibold, plus icon, link-style rather than a bordered button.
+
+### 29.3 Instructions
+
+Icon: numbered list.
+
+- A large, resizable textarea (drag handle visible bottom-right), placeholder showing the `Step 1: …` / `Step 2: …` pattern.
+- Helper text directly below, small and muted: `Tip: Leave a blank line between steps to separate them.`
+
+## Footer actions
+
+Right-aligned, below the form card:
+
+```text
+[ Cancel ]  [ 🖫 Save Recipe ]
+```
+
+- `Cancel`: secondary button — white background, `1px` border, dark text.
+- `Save Recipe`: primary button (Section 32), with a save/disk icon before the label.
+
+All inputs in this screen use the same field treatment as Login (Section 9): light background, `1px` `--color-border`, `--radius-md` (8px).
+
+---
+
+# 30. Shopping List Screen
+
+Reference: `docs/design-reference/shopping-list.png`. Uses the Application Shell (Section 7); "Shopping List" is the active nav item.
+
+## Header
+
+```text
+This Week's List                    [Clear Checked] [Check All]
+March 11 - March 17
+```
+
+- Title: approximately 26px, bold, dark navy.
+- Date range subtitle: secondary text, directly below the title.
+- Top-right button pair: `Clear Checked` (secondary/outline, white background) and `Check All` (primary — filled dark, uses `--color-primary` treatment). Both compact height, `--radius-md`.
+
+## Layout
+
+Two-column grid, same proportions as the Dashboard main grid (Section 11): a wider left column for the list, a narrower right column for progress and promo content.
+
+```css
+grid-template-columns: minmax(0, 2fr) minmax(250px, 0.95fr);
+gap: 16px;
+```
+
+## Grocery list (left column)
+
+Grouped by category (e.g. `Produce`, `Dairy & Refrigerated`). Each group:
+
+- Category heading row: small leaf/drop-style outline icon + semibold dark-navy label, followed by a thin `--color-border` divider spanning the column.
+- Items below the divider, each in its own white-surface bordered row (`1px` `--color-border`, `--radius-md`):
+
+```text
+☐  Spinach                                    [ 2 bags ]
+☑  Cheddar Cheese                              [ 1 block ]
+```
+
+  - Checkbox: custom-styled square, unchecked = white with border; checked = filled `--color-primary` with a white checkmark.
+  - Item name: dark navy when unchecked; when checked, mute the text color (`--color-text-muted`) to signal completion — do not rely on the checkbox alone to convey state.
+  - Quantity: a pill on the row's right edge — `--color-surface-muted` background, `--radius-pill`, small secondary text (e.g. `2 bags`, `5 lbs`, `1 gallon`).
+
+## List Progress card (right column, top)
+
+```text
+┌──────────────────────┐
+│ List Progress         │
+│                       │
+│ 1/4         Items     │
+│             Checked   │
+│ ▬▬▬░░░░░░░░░░░░░░░░░  │
+└──────────────────────┘
+```
+
+- Background: solid `--color-primary` (the one place besides buttons this token is used as a large fill — see the Section 2.1 color-usage table).
+- Text: white/`--color-on-primary`.
+- Label "List Progress": small, semibold.
+- Fraction ("1/4"): large, bold — the visual focal point of the card.
+- "Items Checked" caption: small, softened white.
+- Progress bar: thin, white fill over a translucent white track, width reflects checked/total ratio.
+- Border radius: `--radius-xl` (~10–12px), padding ~20px.
+
+## Inspiration card (right column, below progress)
+
+- Top: food photo banner, rounded top corners only, `object-fit: cover`.
+- Below the image: `Need inspiration?` (semibold, dark navy), `Browse community recipes` (small, muted), `Explore →` (primary green, small, semibold, trailing arrow, link-style).
+- Card wrapper: white surface, `1px` border, `--radius-lg`, overflow hidden so the image respects the rounded top corners.
+
+## Page footer
+
+The reference shows a full-width footer bar on this screen:
+
+```text
+© 2024 MealPrep Pro. All rights reserved.        Privacy Policy · Terms of Service · Help Center
+```
+
+- Background: `--color-surface-muted`.
+- Text: muted, small, on both sides — copyright left-aligned, links right-aligned.
+- Treat this as the application's global footer (renders below page content on every authenticated screen) rather than a Shopping-List-only element, unless a product requirement restricts it to this screen — flag the ambiguity in `.ai/DECISIONS.md` if/when the footer is implemented.
+
+---
+
+# 31. Iconography
 
 Use a consistent outline icon set.
 
@@ -904,13 +1217,17 @@ Icons visible in the reference include:
 - Calendar
 - Shopping cart
 - Sparkles
-- Chevron right
+- Chevron right / left
 - Heart
 - Alert/warning
 - Edit
 - Delete
 - Timer/clock
 - Food/meal
+- Drag handle (grip/dots)
+- Kebab menu (vertical dots)
+- Leaf/drop (category)
+- Checkmark
 
 Recommended icon size:
 
@@ -925,7 +1242,7 @@ Do not mix filled and outlined icon families without a deliberate reason.
 
 ---
 
-# 28. Buttons
+# 32. Buttons
 
 ## Primary
 
@@ -941,11 +1258,34 @@ Use for:
 
 - Create Recipe
 - Create New Recipe
+- Sign In
+- Save Recipe
+- Check All
 - Main submit/save actions
 
 ## Secondary
 
 Use white/light background with a subtle border.
+
+Use for:
+
+- Cancel
+- Clear Checked
+- Week navigation ("Today")
+
+## Toggle / selectable tag
+
+Used for the Categories/Tags chips on Create Recipe (Section 29.1). Same shape as a badge (Section 25 tags) but interactive:
+
+- Unselected: white background, `1px` `--color-border`, secondary text.
+- Selected: `--color-primary-soft` background, `--color-primary` border and text.
+
+## Checkbox
+
+Used for Shopping List items (Section 30):
+
+- Unchecked: white fill, `1px` `--color-border`, `--radius-sm`.
+- Checked: `--color-primary` fill, white checkmark glyph.
 
 ## Icon button
 
@@ -956,12 +1296,13 @@ Use a compact icon control for:
 - Delete
 - Account
 - Search
+- Kebab/overflow menu (Calendar meal chips)
 
 Icon-only controls must have accessible labels.
 
 ---
 
-# 29. Responsive Behavior
+# 33. Responsive Behavior
 
 The screenshots represent desktop/tablet-like layouts. The implementation must not simply scale the screenshot.
 
@@ -980,12 +1321,20 @@ Recipe Library:
 Sidebar + 3-column recipe grid
 ```
 
+Shopping List:
+
+```text
+Grocery list        Progress + promo
+     2fr                1fr
+```
+
 ## Tablet
 
 - Reduce page gutters.
-- Keep dashboard two columns only if enough space exists.
+- Keep dashboard/shopping-list two columns only if enough space exists.
 - Reduce recipe grid to two columns.
 - Keep sidebar if usable.
+- Calendar: keep all 7 day columns if they fit at a reduced width; otherwise allow horizontal scroll within the grid card rather than dropping days.
 
 ## Mobile
 
@@ -1014,9 +1363,44 @@ Recipe grid becomes one column or two narrow columns depending on available widt
 
 The filter sidebar should become a collapsible/drawer filter.
 
+Calendar:
+
+```text
+Header
+Week nav
+Day selector (one day at a time) or horizontal-scroll grid
+Meal slots for the selected day
+```
+
+A full 7-column grid does not fit mobile width — collapse to a single active day with day-to-day navigation, or allow horizontal scroll; either is acceptable, but do not shrink the grid until it becomes illegible.
+
+Create Recipe:
+
+```text
+Header
+Recipe Basics
+Ingredients
+Instructions
+Footer actions (Cancel / Save Recipe)
+```
+
+Single column throughout; Prep Time/Servings stack instead of sitting side by side.
+
+Shopping List:
+
+```text
+Header
+List Progress
+Grocery list (grouped)
+Inspiration card
+Footer
+```
+
+Single column — progress and inspiration cards move above or below the list rather than sitting beside it.
+
 ---
 
-# 30. Responsive Breakpoints
+# 34. Responsive Breakpoints
 
 Use behavior-oriented breakpoints:
 
@@ -1031,7 +1415,7 @@ Do not use fixed absolute positioning to reproduce the screenshots.
 
 ---
 
-# 31. Interaction States
+# 35. Interaction States
 
 Every interactive element needs:
 
@@ -1057,7 +1441,7 @@ Reduced contrast without making text unreadable.
 
 ---
 
-# 32. Animation
+# 36. Animation
 
 Keep animation subtle.
 
@@ -1076,7 +1460,7 @@ Do not animate large food images or dashboard sections unnecessarily.
 
 ---
 
-# 33. Accessibility
+# 37. Accessibility
 
 The visual design must not compromise accessibility.
 
@@ -1092,10 +1476,12 @@ Required:
 - `aria-current="page"` for active navigation where appropriate.
 - Do not communicate errors only through red color.
 - Do not communicate selected state only through background color.
+- Shopping List: checked state must be conveyed by more than the checkbox fill alone (Section 30 requires muted text as well).
+- Calendar: meal chips must remain distinguishable without relying on color alone if a colorblind-safe audit is later required (deferred — flag in `.ai/KNOWN_ISSUES.md` if raised).
 
 ---
 
-# 34. Agent Implementation Rules
+# 38. Agent Implementation Rules
 
 When an agent creates or modifies UI, it MUST follow these rules.
 
@@ -1119,10 +1505,12 @@ When an agent creates or modifies UI, it MUST follow these rules.
 18. Do not create a new component variant when an existing component can express the required state.
 19. Implement loading, empty, error, disabled, and success states.
 20. If a new reusable visual pattern is introduced, update this document.
+21. If a token value in Section 2 changes, update the matching CSS variable in `app/globals.css` in the same change (see Section 2.3's mapping table) — never let the two drift apart.
+22. Do not hard-code hex colors in components; use the Tailwind semantic classes backed by `app/globals.css` (`bg-primary`, `text-foreground`, `bg-muted`, etc.).
 
 ---
 
-# 35. Visual QA Checklist
+# 39. Visual QA Checklist
 
 Before considering a screen complete, compare it against the Stitch/reference design.
 
@@ -1144,6 +1532,13 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] Active navigation uses green text and underline.
 - [ ] Profile icon is on the right.
 - [ ] Recipe screen includes search.
+
+## Login
+
+- [ ] No top navigation bar is rendered.
+- [ ] Card is centered and uses the overlay shadow.
+- [ ] Sign In button is full width and visually dominant.
+- [ ] Forgot Password sits on the Password label row.
 
 ## Dashboard
 
@@ -1168,9 +1563,33 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] Footer contains date/edit/delete.
 - [ ] Missing images use the light blue placeholder.
 
+## Calendar
+
+- [ ] Weekly Plan heading and date range are left-aligned.
+- [ ] Prev/Today/Next controls are grouped top-right.
+- [ ] Grid has 7 day columns and Breakfast/Lunch/Dinner rows.
+- [ ] Meal chips use the primary-soft background, not the metric-card blue.
+- [ ] Empty cells render blank with no placeholder content.
+
+## Create Recipe
+
+- [ ] Back link precedes the page title.
+- [ ] Three sub-sections (Basics, Ingredients, Instructions) each have an icon + label heading.
+- [ ] Category/tag chips distinguish selected vs. unselected states.
+- [ ] Ingredient rows include drag handle, qty, unit, name, and delete.
+- [ ] Footer actions (Cancel / Save Recipe) are right-aligned.
+
+## Shopping List
+
+- [ ] Clear Checked / Check All buttons sit top-right of the header.
+- [ ] Items are grouped by category with a divider.
+- [ ] Checked items are visually muted, not just checkbox-filled.
+- [ ] List Progress card uses a solid primary-green background.
+- [ ] Inspiration card image has rounded top corners only.
+
 ---
 
-# 36. Source-of-Truth Rule
+# 40. Source-of-Truth Rule
 
 When implementing a UI decision, use this priority:
 
@@ -1184,7 +1603,7 @@ If the agent notices a difference between an existing implementation and this do
 
 ---
 
-# 37. Important Instruction for AI Coding Agents
+# 41. Important Instruction for AI Coding Agents
 
 **Do not interpret this document as a generic suggestion.**
 

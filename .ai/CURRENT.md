@@ -17,9 +17,15 @@ module work starts.
 - Built `/login` page (real NextAuth wiring) matching the reference design.
 - Built `/dashboard` page (placeholder data) + shared NavBar used by every
   `(dashboard)` route.
-- Pushed to GitHub: `AdeepaGit/meal-planner`, branches `main`, `develop`,
+- Pushed to GitHub: `OneZ-9/meal-planner`, branches `main`, `develop`,
   `feature/auth-signup`, `feature/dashboard-overview`,
   `feature/ingredients-typeahead`, `feature/calendar-assign`.
+- `.ai/DESIGN.md` now fully specifies all 6 reference screens (added Login,
+  Calendar, Create Recipe, Shopping List — previously only Dashboard and
+  Recipe Library were documented). `app/globals.css`'s shadcn CSS variables
+  were retuned to match `DESIGN.md`'s exact palette (see DECISIONS.md); any
+  page built from here on gets the correct colors automatically via the
+  semantic Tailwind classes.
 
 ## Blocker
 

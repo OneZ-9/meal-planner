@@ -1,7 +1,7 @@
 # TASKS.md
 
-Source: `Meal_Planner_Specification.pdf` Section 7 (Initial Delivery Plan).
-User story IDs (US-N) refer to that plan.
+Source: [`.ai/DELIVERY_PLAN.md`](DELIVERY_PLAN.md). User story IDs (US-N)
+refer to that plan.
 
 ## Done
 

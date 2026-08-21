@@ -19,6 +19,7 @@ Open [http://localhost:3000](http://localhost:3000). Requires a running MongoDB 
 - `npm run lint` — ESLint
 - `npm test` — run the Vitest suite once (`npx vitest` for watch mode)
 - `npm run format` / `npm run format:check` — Prettier write / check
+- `node --env-file=.env.local scripts/seed-ingredients.mjs` — seed the canonical ingredients collection (idempotent, safe to re-run)
 
 ## Stack
 
@@ -34,4 +35,4 @@ Project conventions — feature-folder structure, state management rules, code s
 
 ## Project state
 
-Early stage: the app currently renders a placeholder home page. MongoDB is connected, but no collections, API routes, or meal-planning domain logic exist yet.
+Early stage: the app currently renders a placeholder home page. MongoDB is connected with one seeded collection (canonical ingredients), but no API routes or meal-planning UI exist yet.
