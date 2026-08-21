@@ -10,8 +10,12 @@ It is written so that a coding/design agent can implement the UI without relying
 
 The UI is based on the provided Google Stitch prototype and the supplied reference screenshots:
 
-- Dashboard reference: `Screenshot 2026-08-21 230633.png`
-- Recipe Library reference: `Screenshot 2026-08-21 230645.png`
+- login reference :`docs/design-reference/login.png`
+- Dashboard reference: `docs/design-reference/dashboard.png`
+- calendar reference: `docs/design-reference/calendar.png`
+- create-recipe reference: `docs/design-reference/create-recipe.png`
+- shopping-list reference: `docs/design-reference/shopping-list.png`
+- Recipe Library reference: `docs/design-reference/recipes.png`
 
 When implementing a screen, preserve the **visual hierarchy, proportions, spacing, colors, typography, borders, radii, and interaction patterns** described below.
 
@@ -95,19 +99,19 @@ The supplied screenshots indicate the following core palette.
 
 ### Color usage
 
-| Color | Usage |
-|---|---|
-| `#F8F9FF` | Main application background |
-| `#FFFFFF` | Cards, navigation, inputs, primary surfaces |
-| `#EFF4FF` | Metric cards, sidebar/background accents |
+| Color     | Usage                                                        |
+| --------- | ------------------------------------------------------------ |
+| `#F8F9FF` | Main application background                                  |
+| `#FFFFFF` | Cards, navigation, inputs, primary surfaces                  |
+| `#EFF4FF` | Metric cards, sidebar/background accents                     |
 | `#006C49` | Brand, primary buttons, active navigation, positive emphasis |
-| `#0B1C30` | Main headings and important text |
-| `#41536A` | Secondary text |
-| `#68798D` | Supporting/meta text |
-| `#D6DDE5` | Card and control borders |
-| `#DAE2FD` | Selected navigation/filter background |
-| `#D92D3A` | Missing/error status |
-| `#E8F5EF` | Soft positive/brand background |
+| `#0B1C30` | Main headings and important text                             |
+| `#41536A` | Secondary text                                               |
+| `#68798D` | Supporting/meta text                                         |
+| `#D6DDE5` | Card and control borders                                     |
+| `#DAE2FD` | Selected navigation/filter background                        |
+| `#D92D3A` | Missing/error status                                         |
+| `#E8F5EF` | Soft positive/brand background                               |
 
 Do not use pure black for normal text.
 
