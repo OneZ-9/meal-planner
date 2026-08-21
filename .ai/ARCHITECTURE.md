@@ -108,6 +108,27 @@ unless explicitly required by a future specification.
 
 The defined technology stack is Next.js App Router with TypeScript/React, Tailwind CSS, MongoDB Atlas with Mongoose, NextAuth.js with credentials authentication, bcrypt, Vercel, MongoDB text search, and `convert-units`.
 
+### Project structure
+
+```
+.
+├── app/                  # App Router: pages, layouts, providers, co-located tests
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── page.test.tsx
+│   ├── providers.tsx
+│   └── globals.css
+├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
+├── lib/               # Shared helpers: utils.ts, mongodb.ts (lib/api/ once queries exist)
+├── test/              # Shared test helpers (test/test-utils.tsx)
+├── public/            # Static assets
+├── components.json    # shadcn/ui config
+├── vitest.config.mts / vitest.setup.ts
+└── .env.local         # local-only env overrides (gitignored)
+```
+
+This reflects the current layout — update it here as the structure actually changes, don't let it drift into aspiration. `features/` isn't present yet — see Feature-based architecture below for what it will look like once the first feature is built.
+
 ---
 
 # 4. High-Level Component Architecture
