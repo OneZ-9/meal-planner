@@ -17,7 +17,7 @@ module work starts.
 - Built `/login` page (real NextAuth wiring) matching the reference design.
 - Built `/dashboard` page (placeholder data) + shared NavBar used by every
   `(dashboard)` route.
-- Pushed to GitHub: `AdeepaGit/meal-planner`, branches `main`, `develop`,
+- Pushed to GitHub: `OneZ-9/meal-planner`, branches `main`, `develop`,
   `feature/auth-signup`, `feature/dashboard-overview`,
   `feature/ingredients-typeahead`, `feature/calendar-assign`.
 
