@@ -64,35 +64,18 @@ The specification explicitly defines recipe edits as live references rather than
 
 # 3. Architectural Style
 
-The application should use a **modular monolithic architecture** within the Next.js application.
+## Feature-based architecture
 
-```text
-Next.js Application
-│
-├── Presentation Layer
-│   ├── Pages
-│   ├── Components
-│   └── Forms
-│
-├── Application / Server Layer
-│   ├── Authentication
-│   ├── Recipes
-│   ├── Ingredients
-│   ├── Calendar
-│   └── Shopping List
-│
-├── Domain Logic
-│   ├── Recipe validation
-│   ├── Ingredient matching
-│   ├── Calendar rules
-│   └── Shopping-list generation
-│
-└── Persistence Layer
-    ├── Mongoose models
-    └── MongoDB Atlas
-```
-
-The MVP does **not** require separate microservices.
+- Group each feature's components and feature-specific logic under `features/<feature-name>/` (e.g. `features/meal-plan/`, `features/shopping-list/`) — don't put feature UI directly in `app/` or in the shared `components/ui/` folder (that's reserved for shadcn/ui primitives).
+- Suggested layout inside each feature folder:
+  ```
+  features/<feature-name>/
+  ├── components/   # feature-specific UI components
+  ├── hooks/        # feature-specific hooks (state, queries, mutations)
+  └── index.ts      # barrel export — what app/ is allowed to import
+  ```
+- `app/page.tsx` (and other route files) are presentation-only: they import a feature's top-level component from `features/` and render it. See the "contain no state management logic" rule in Page and Layout file conventions below.
+- `features/` doesn't exist yet — create it when the first feature lands, following this structure instead of putting components or state directly in `app/`.
 
 Avoid introducing:
 
@@ -119,7 +102,9 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 │   ├── providers.tsx
 │   └── globals.css
 ├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── lib/               # Shared helpers: utils.ts, mongodb.ts (lib/api/ once queries exist)
+├── lib/               # Shared helpers: utils.ts, mongodb.ts, models/ (lib/api/ once queries exist)
+├── data/              # Seed data (data/ingredients-seed-data.js)
+├── scripts/           # One-off/seed scripts (scripts/seed-ingredients.mjs)
 ├── test/              # Shared test helpers (test/test-utils.tsx)
 ├── public/            # Static assets
 ├── components.json    # shadcn/ui config
@@ -128,8 +113,6 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 ```
 
 This reflects the current layout — update it here as the structure actually changes, don't let it drift into aspiration. `features/` isn't present yet — see Feature-based architecture below for what it will look like once the first feature is built.
-
----
 
 # 4. High-Level Component Architecture
 
@@ -751,15 +734,15 @@ Week 2026-08-17
 
 # 18. Data Ownership
 
-| Data | Owner | Used By |
-|---|---|---|
-| User | Authentication | All user modules |
-| Global Ingredient | Ingredient module | Recipe, Shopping |
-| Custom Ingredient | Ingredient module | Recipe, Shopping |
-| Recipe | Recipe module | Calendar, Shopping |
-| Calendar Assignment | Calendar module | Shopping |
-| Shopping List | Shopping module | Checklist/UI |
-| Checked State | Checklist/Shopping List | Checklist/UI |
+| Data                | Owner                   | Used By            |
+| ------------------- | ----------------------- | ------------------ |
+| User                | Authentication          | All user modules   |
+| Global Ingredient   | Ingredient module       | Recipe, Shopping   |
+| Custom Ingredient   | Ingredient module       | Recipe, Shopping   |
+| Recipe              | Recipe module           | Calendar, Shopping |
+| Calendar Assignment | Calendar module         | Shopping           |
+| Shopping List       | Shopping module         | Checklist/UI       |
+| Checked State       | Checklist/Shopping List | Checklist/UI       |
 
 The general dependency direction is:
 
@@ -1221,7 +1204,7 @@ Agents must not implement these unless the task explicitly requests them:
 - Batch-cook quantity scaling
 - Offline mode
 
-These are identified as future features or limitations in the specification. 
+These are identified as future features or limitations in the specification.
 ---
 
 # 31. Future-Proofing Rules
@@ -1341,20 +1324,20 @@ If a circular dependency appears necessary, move the shared business logic into 
 
 # 34. Where Business Logic Should Live
 
-| Logic | Recommended Owner |
-|---|---|
-| Password hashing | Authentication |
-| Session validation | Authentication |
-| Ingredient search | Ingredient module |
-| Ingredient duplicate validation | Ingredient module |
-| Recipe validation | Recipe module |
-| Calendar slot replacement | Calendar module |
-| Week navigation | Calendar module |
-| Unit normalization | Conversion/domain logic |
-| Ingredient merging | Shopping List |
-| Shopping quantity rounding | Shopping List |
-| Shopping list generation | Shopping List |
-| Checked state | Checklist/Shopping List |
+| Logic                           | Recommended Owner       |
+| ------------------------------- | ----------------------- |
+| Password hashing                | Authentication          |
+| Session validation              | Authentication          |
+| Ingredient search               | Ingredient module       |
+| Ingredient duplicate validation | Ingredient module       |
+| Recipe validation               | Recipe module           |
+| Calendar slot replacement       | Calendar module         |
+| Week navigation                 | Calendar module         |
+| Unit normalization              | Conversion/domain logic |
+| Ingredient merging              | Shopping List           |
+| Shopping quantity rounding      | Shopping List           |
+| Shopping list generation        | Shopping List           |
+| Checked state                   | Checklist/Shopping List |
 
 Business rules should not be duplicated across UI components.
 
@@ -1614,25 +1597,25 @@ The specification explicitly identifies this connected recipe → calendar → s
 
 # 40. Architecture Decision Summary
 
-| Decision | MVP Choice |
-|---|---|
-| Architecture | Modular monolith |
-| Frontend | Next.js App Router + React + TypeScript |
-| Styling | Tailwind CSS |
-| Backend | Next.js server-side application logic |
-| Database | MongoDB Atlas |
-| ODM | Mongoose |
-| Authentication | NextAuth.js credentials |
-| Password hashing | bcrypt |
-| Ingredient search | MongoDB text index |
-| Unit conversion | `convert-units` |
-| Hosting | Vercel |
-| Data isolation | Per authenticated user |
-| Recipe/calendar relationship | Live recipe reference |
-| Shopping list | Derived from weekly assignments |
-| Fuzzy matching | Deferred |
-| Advanced cross-family conversion | Deferred |
-| Offline mode | Not supported |
+| Decision                         | MVP Choice                              |
+| -------------------------------- | --------------------------------------- |
+| Architecture                     | Modular monolith                        |
+| Frontend                         | Next.js App Router + React + TypeScript |
+| Styling                          | Tailwind CSS                            |
+| Backend                          | Next.js server-side application logic   |
+| Database                         | MongoDB Atlas                           |
+| ODM                              | Mongoose                                |
+| Authentication                   | NextAuth.js credentials                 |
+| Password hashing                 | bcrypt                                  |
+| Ingredient search                | MongoDB text index                      |
+| Unit conversion                  | `convert-units`                         |
+| Hosting                          | Vercel                                  |
+| Data isolation                   | Per authenticated user                  |
+| Recipe/calendar relationship     | Live recipe reference                   |
+| Shopping list                    | Derived from weekly assignments         |
+| Fuzzy matching                   | Deferred                                |
+| Advanced cross-family conversion | Deferred                                |
+| Offline mode                     | Not supported                           |
 
 These technology choices are based directly on the project specification.
 
