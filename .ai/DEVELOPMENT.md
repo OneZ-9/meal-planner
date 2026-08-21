@@ -36,9 +36,10 @@ MongoDB Atlas, free/low tier (per spec Assumptions). No local Mongo —
 everyone points at the same Atlas cluster during the 2-week delivery
 (single shared dev database, per Scope: single-tenant app, small team).
 
-Seed data: the 148-item canonical ingredient list is not yet scripted.
-Until a seed script exists, create ingredients manually via the
-`/api/ingredients` POST route or directly in Atlas.
+Seed data: the 148-item canonical ingredient list lives in
+`data/ingredients-seed-data.js`. Load it with
+`node --env-file=.env.local scripts/seed-ingredients.mjs` — idempotent,
+upserts by ingredient name, safe to re-run.
 
 ## Conventions
 
