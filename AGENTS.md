@@ -29,6 +29,9 @@ part of the standard pickup sequence.
 
 ## Situational — read when the trigger applies
 
+- **`.ai/DESIGN.md`** — the UI visual and interaction contract (layout, spacing,
+  colors, typography, component patterns); read before implementing or
+  modifying any screen.
 - **`.ai/Unit_Conversion_Algorithm_Spec.md`** — read before touching shopping-list
   generation or unit normalization; has the exact algorithm and verified
   test cases (US-3, US-7).
