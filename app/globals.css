@@ -57,22 +57,22 @@
  * hard-coded hex values.
  */
 :root {
-  --card: #FFFFFF; /* --color-surface */
-  --card-foreground: #0B1C30; /* --color-text-primary */
-  --popover: #FFFFFF; /* --color-surface */
-  --popover-foreground: #0B1C30; /* --color-text-primary */
-  --primary: #006C49; /* --color-primary */
-  --primary-foreground: #FFFFFF; /* --color-on-primary */
-  --secondary: #EFF4FF; /* --color-surface-muted */
-  --secondary-foreground: #0B1C30; /* --color-text-primary */
-  --muted: #EFF4FF; /* --color-surface-muted */
-  --muted-foreground: #41536A; /* --color-text-secondary */
-  --accent: #DAE2FD; /* --color-selected */
-  --accent-foreground: #0B1C30; /* --color-text-primary */
-  --destructive: #D92D3A; /* --color-error */
-  --border: #D6DDE5; /* --color-border */
-  --input: #D6DDE5; /* --color-border */
-  --ring: #006C49; /* --color-primary */
+  --card: #ffffff; /* --color-surface */
+  --card-foreground: #0b1c30; /* --color-text-primary */
+  --popover: #ffffff; /* --color-surface */
+  --popover-foreground: #0b1c30; /* --color-text-primary */
+  --primary: #006c49; /* --color-primary */
+  --primary-foreground: #ffffff; /* --color-on-primary */
+  --secondary: #eff4ff; /* --color-surface-muted */
+  --secondary-foreground: #0b1c30; /* --color-text-primary */
+  --muted: #eff4ff; /* --color-surface-muted */
+  --muted-foreground: #41536a; /* --color-text-secondary */
+  --accent: #dae2fd; /* --color-selected */
+  --accent-foreground: #0b1c30; /* --color-text-primary */
+  --destructive: #d92d3a; /* --color-error */
+  --border: #d6dde5; /* --color-border */
+  --input: #d6dde5; /* --color-border */
+  --ring: #006c49; /* --color-primary */
   --chart-1: oklch(0.879 0.169 91.605);
   --chart-2: oklch(0.769 0.188 70.08);
   --chart-3: oklch(0.666 0.179 58.318);
@@ -83,16 +83,16 @@
      computes to 14px vs. the spec's 12px - an accepted, documented
      deviation (see DESIGN.md Section 2.3). */
   --radius: 0.625rem;
-  --sidebar: #EFF4FF; /* --color-surface-muted */
-  --sidebar-foreground: #0B1C30; /* --color-text-primary */
-  --sidebar-primary: #006C49; /* --color-primary */
-  --sidebar-primary-foreground: #FFFFFF; /* --color-on-primary */
-  --sidebar-accent: #DAE2FD; /* --color-selected */
-  --sidebar-accent-foreground: #0B1C30; /* --color-text-primary */
-  --sidebar-border: #D6DDE5; /* --color-border */
-  --sidebar-ring: #006C49; /* --color-primary */
-  --background: #F8F9FF; /* --color-background */
-  --foreground: #0B1C30; /* --color-text-primary */
+  --sidebar: #eff4ff; /* --color-surface-muted */
+  --sidebar-foreground: #0b1c30; /* --color-text-primary */
+  --sidebar-primary: #006c49; /* --color-primary */
+  --sidebar-primary-foreground: #ffffff; /* --color-on-primary */
+  --sidebar-accent: #dae2fd; /* --color-selected */
+  --sidebar-accent-foreground: #0b1c30; /* --color-text-primary */
+  --sidebar-border: #d6dde5; /* --color-border */
+  --sidebar-ring: #006c49; /* --color-primary */
+  --background: #f8f9ff; /* --color-background */
+  --foreground: #0b1c30; /* --color-text-primary */
 }
 
 /*
