@@ -1,47 +1,66 @@
-import type { ReactElement } from "react";
+"use client";
+
+import { type FormEvent, type ReactElement, useState } from "react";
 import Link from "next/link";
-import { Utensils } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+
 import { Button } from "@/components/ui/button";
+import { AuthInput } from "./auth-input";
+import { AuthMessage } from "./auth-message";
+import { AuthShell } from "./auth-shell";
 
-export const LoginScreen = (): ReactElement => (
-  <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-10 sm:px-6">
-    <section
-      aria-labelledby="login-title"
-      className="w-full max-w-[510px] rounded-xl border border-border bg-card px-7 py-10 shadow-[0_8px_24px_rgba(11,28,48,0.12)] sm:px-11 sm:py-11"
+export const LoginScreen = (): ReactElement => {
+  const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    event.preventDefault();
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      const result = await signIn("credentials", {
+        email: formData.get("email"),
+        password: formData.get("password"),
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setErrorMessage("Email or password is incorrect.");
+        return;
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setErrorMessage("We could not sign you in. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AuthShell
+      description="Plan your meals, shop smarter."
+      title="MealPrep Pro"
     >
-      <div className="mb-9 flex flex-col items-center text-center">
-        <div className="mb-6 flex size-16 items-center justify-center rounded-full border border-border bg-secondary text-primary">
-          <Utensils aria-hidden="true" className="size-7" strokeWidth={2.3} />
-        </div>
-        <h1
-          id="login-title"
-          className="text-[32px] font-bold tracking-[-0.035em] text-foreground"
-        >
-          MealPrep Pro
-        </h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          Plan your meals, shop smarter.
-        </p>
-      </div>
-
-      <form action="/dashboard" className="space-y-5">
-        <div className="space-y-2">
-          <label
-            className="block text-sm font-semibold text-foreground"
-            htmlFor="email"
-          >
-            Email
-          </label>
-          <input
-            autoComplete="email"
-            className="h-11 w-full rounded-md border border-input bg-background px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-ring/20"
-            id="email"
-            name="email"
-            placeholder="Enter your email"
-            required
-            type="email"
-          />
-        </div>
+      <form className="space-y-5" onSubmit={handleSubmit}>
+        {errorMessage && <AuthMessage message={errorMessage} />}
+        <AuthInput
+          autoComplete="email"
+          disabled={isSubmitting}
+          id="email"
+          label="Email"
+          name="email"
+          placeholder="Enter your email"
+          required
+          type="email"
+        />
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-4">
             <label
@@ -59,7 +78,8 @@ export const LoginScreen = (): ReactElement => (
           </div>
           <input
             autoComplete="current-password"
-            className="h-11 w-full rounded-md border border-input bg-background px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-ring/20"
+            className="h-11 w-full rounded-md border border-input bg-background px-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isSubmitting}
             id="password"
             name="password"
             placeholder="Enter your password"
@@ -68,23 +88,24 @@ export const LoginScreen = (): ReactElement => (
           />
         </div>
         <Button
+          disabled={isSubmitting}
           className="mt-1 h-12 w-full text-sm font-semibold"
           size="lg"
           type="submit"
         >
-          Sign In
+          {isSubmitting ? "Signing in…" : "Sign In"}
         </Button>
       </form>
 
-      <footer className="mt-7 flex items-center justify-center gap-4 text-xs text-muted-foreground">
-        <Link className="hover:text-primary hover:underline" href="#">
-          IT Support
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        New to MealPrep Pro?{" "}
+        <Link
+          className="font-semibold text-primary hover:underline"
+          href="/register"
+        >
+          Create an account
         </Link>
-        <span aria-hidden="true">•</span>
-        <Link className="hover:text-primary hover:underline" href="#">
-          Privacy Policy
-        </Link>
-      </footer>
-    </section>
-  </main>
-);
+      </p>
+    </AuthShell>
+  );
+};

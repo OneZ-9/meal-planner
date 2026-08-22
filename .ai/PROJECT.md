@@ -61,7 +61,10 @@ Two specific failure modes drive this:
 - **Testing**: Vitest + React Testing Library + jsdom. Config is `vitest.config.mts` (the `.mts` extension avoids a CJS/ESM warning without setting `"type": "module"` in `package.json`); `vitest.setup.ts` loads `@testing-library/jest-dom` matchers. Tests are co-located next to source as `*.test.tsx` (see `app/page.test.tsx`). For components that read from `@tanstack/react-query` context (e.g. `useQuery`), use `renderWithProviders` from `test/test-utils.tsx` instead of `@testing-library/react`'s bare `render` — it wraps the tree in a fresh `QueryClientProvider` per test.
 - **Formatting**: Prettier with default rules (`.prettierrc.json` is intentionally empty); `.prettierignore` excludes `.next` and `node_modules`.
 - TypeScript is `strict`, with the `@/*` path alias mapped to the repo root (`tsconfig.json`); the same alias is mirrored in `vitest.config.mts` for tests.
-- **Environment variables**: Local overrides go in `.env.local` (gitignored via `.env*` in `.gitignore`); values the browser needs to read must be prefixed `NEXT_PUBLIC_`. `.env.example` documents the current names (`MONGODB_URI`, `PORT`) with empty values — it must be force-added to git (`git add -f`) since `.gitignore` ignores all `.env*` files by default.
+- **Environment variables**: Local overrides go in `.env.local` (gitignored);
+  values the browser needs to read must be prefixed `NEXT_PUBLIC_`.
+  `.env.example` is explicitly tracked and documents `MONGODB_URI`,
+  `AUTH_SECRET`, and `AUTH_URL` without real secret values.
   - `PORT` in `.env.local` does **not** actually change the dev/start server's bound port — verified empirically: Next's CLI resolves the port from a real OS-level `PORT` env var before `.env.local` is loaded, so the file value is too late to matter. To actually change the port, export `PORT` at the shell (e.g. `PORT=4321 npm run dev`) or update the `dev`/`start` scripts in `package.json` to pass `-p` explicitly (needs sign-off per the "don't rewrite config" rule above).
 
 ## Terminology

@@ -6,11 +6,21 @@
 
 ## Objective (right now)
 
-Set up context-engineering docs (this `.ai/` folder) so all 3 developers
-and any AI coding agents have consistent project context before Week 1
-module work starts.
+Complete US-1 account registration, credentials login, persisted sessions,
+authenticated dashboard access, and sign-out.
 
 ## Recent work
+
+- Implemented US-1 authentication in this checkout: `/register` creates a
+  normalized-email user with a bcrypt hash in MongoDB, then signs the user in;
+  `/login` uses NextAuth credentials and redirects successful logins to
+  `/dashboard`; `/dashboard` is protected server-side; the app nav signs out.
+- Added the `User` Mongoose model (`users` collection, unique email index),
+  Auth.js route handler/config, server-side registration validation, JWT session
+  user IDs, auth UI states, and unit coverage for registration validation and
+  root redirects.
+- Added `next-auth@5.0.0-beta.32` and `bcryptjs@3.0.3`; `.env.example` now
+  documents `MONGODB_URI`, `AUTH_SECRET`, and `AUTH_URL`.
 
 - Real MongoDB Atlas cluster is live (`meal-planner-live` DB, `MONGODB_URI`
   in `.env.local`). Ran `scripts/seed-ingredients.mjs` against it — verified
@@ -50,19 +60,19 @@ None currently.
 
 ## Next action
 
-1. Each dev checks out their `feature/*` branch and starts their Week 1
-   user story (see TASKS.md for the exact breakdown).
-2. Recipes and Calendar pages are still unbuilt (UI only exists for
-   Login and Dashboard so far).
-3. With ingredients seeded, Dev B can move on to the search/typeahead API
-   and US-2/US-3/US-4 recipe CRUD.
+1. Set a strong `AUTH_SECRET` locally and in the deployment environment, then
+   manually exercise registration/login against the intended Atlas database.
+2. Apply `auth()` checks and `session.user.id` ownership filters to every
+   user-owned API as recipe/calendar/shopping-list routes are implemented.
+3. Recipes and Calendar pages remain unbuilt.
 
 ## Validation state
 
-- `npx tsc --noEmit` — clean.
-- Manually verified `/login` and `/dashboard` render correctly via a
-  running dev server (checked actual HTML output, not just source).
-- No automated tests exist yet (see DEVELOPMENT.md Testing section).
+- `npx tsc --noEmit` and `npm run lint` — clean after the auth change.
+- `npm test -- --run` passes (2 files, 5 tests); coverage includes registration
+  validation and root auth redirects.
+- `npm run build` passes; local HTTP smoke checks return 200 for `/login` and
+  `/register`, and 307 `/login` for a signed-out `/dashboard` request. A live
+  account-creation smoke test was intentionally not run against the shared DB.
 - API routes are still stubs (`{message: "... not yet implemented"}`) —
-  none of the 5 modules' actual CRUD logic is built yet, only the models
-  and folder scaffolding.
+  non-auth module CRUD is not built yet.

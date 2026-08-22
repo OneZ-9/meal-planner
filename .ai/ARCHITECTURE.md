@@ -75,7 +75,8 @@ The specification explicitly defines recipe edits as live references rather than
   └── index.ts      # barrel export — what app/ is allowed to import
   ```
 - `app/page.tsx` (and other route files) are presentation-only: they import a feature's top-level component from `features/` and render it. See the "contain no state management logic" rule in Page and Layout file conventions below.
-- `features/` doesn't exist yet — create it when the first feature lands, following this structure instead of putting components or state directly in `app/`.
+- Existing auth, app-shell, and dashboard UI follows this structure under
+  `features/`; new feature UI must continue the same pattern.
 
 Avoid introducing:
 
@@ -96,13 +97,15 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 ```
 .
 ├── app/                  # App Router: pages, layouts, providers, co-located tests
-│   ├── layout.tsx
-│   ├── page.tsx
-│   ├── page.test.tsx
-│   ├── providers.tsx
-│   └── globals.css
+│   ├── api/auth/         # NextAuth handler + registration route
+│   ├── login/ register/  # Public auth pages
+│   ├── dashboard/        # Server-protected dashboard page
+│   └── layout.tsx, page.tsx, providers.tsx, globals.css
 ├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── lib/               # Shared helpers: utils.ts, mongodb.ts, models/ (lib/api/ once queries exist)
+├── features/          # Auth, app shell, and dashboard feature UI
+├── lib/               # Shared helpers, validation, MongoDB, and Mongoose models
+├── auth.ts            # NextAuth credentials/session configuration
+├── types/             # NextAuth session type augmentation
 ├── data/              # Seed data (data/ingredients-seed-data.js)
 ├── scripts/           # One-off/seed scripts (scripts/seed-ingredients.mjs)
 ├── test/              # Shared test helpers (test/test-utils.tsx)
@@ -112,7 +115,8 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 └── .env.local         # local-only env overrides (gitignored)
 ```
 
-This reflects the current layout — update it here as the structure actually changes, don't let it drift into aspiration. `features/` isn't present yet — see Feature-based architecture below for what it will look like once the first feature is built.
+This reflects the current high-level layout; update it when module boundaries
+or data flow change.
 
 # 4. High-Level Component Architecture
 

@@ -35,6 +35,13 @@ session management, same stack decided earlier in this project) — no
 external identity provider, no protocol negotiation, no dependency on
 another team's ticket queue.
 
+Implementation uses NextAuth v5 credentials with encrypted HTTP-only JWT
+session cookies. MongoDB stores only normalized lowercase email addresses and
+bcrypt password hashes (cost 12); `session.user.id` is populated from the JWT
+subject so future server routes can scope queries without accepting a client
+user ID. Registration auto-signs in and redirects to `/dashboard` to avoid a
+redundant second credential entry.
+
 **Trade-off:** self-service accounts bring password reset back into scope Password reset is scoped as **time-permitting, not committed** — see the cut list.
 
 ## Decisions resolved for this plan

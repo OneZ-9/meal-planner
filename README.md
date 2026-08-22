@@ -9,7 +9,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). No local MongoDB install needed — the app connects to a shared MongoDB Atlas cluster. Copy `.env.example` to `.env.local` and fill in `MONGODB_URI` with the Atlas connection string (ask a teammate for the shared dev value). If startup fails with `querySrv ENOTFOUND ...`, your network/DNS is blocking the SRV lookup `mongodb+srv://` URIs need — see the fix in `.ai/FIXES.md`.
+Open [http://localhost:3000](http://localhost:3000). No local MongoDB install
+is needed — the app connects to MongoDB Atlas. Copy `.env.example` to
+`.env.local`, set `MONGODB_URI`, and generate `AUTH_SECRET` with
+`openssl rand -base64 32`; `AUTH_URL` is `http://localhost:3000` locally. Ask a
+teammate for the shared dev database value. If startup fails with
+`querySrv ENOTFOUND ...`, your network/DNS is blocking the SRV lookup
+`mongodb+srv://` URIs need — see `.ai/FIXES.md`.
 
 ## Scripts
 

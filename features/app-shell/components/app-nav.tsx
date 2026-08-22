@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { CircleUserRound, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
+
+import { signOut } from "@/auth";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard" },
@@ -47,13 +49,21 @@ export const AppNav = ({ activePath }: AppNavProps): ReactElement => (
       >
         <Menu className="size-5" />
       </button>
-      <button
-        aria-label="Open account menu"
-        className="rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        type="button"
+      <form
+        action={async () => {
+          "use server";
+          await signOut({ redirectTo: "/login" });
+        }}
       >
-        <CircleUserRound className="size-[18px]" />
-      </button>
+        <button
+          aria-label="Sign out"
+          className="rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          title="Sign out"
+          type="submit"
+        >
+          <LogOut className="size-[18px]" />
+        </button>
+      </form>
     </div>
   </header>
 );

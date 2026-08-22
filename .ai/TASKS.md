@@ -8,19 +8,20 @@ refer to that plan.
 - [x] Project scaffold: Next.js App Router, TypeScript, Tailwind, all 5
       Mongoose models, stub API routes, git branch structure.
 - [x] `.env.example`, README with setup + git workflow.
-- [x] Login page UI + real NextAuth credentials wiring (US-1, partial —
-      signup form not built yet, session/isolation not yet exercised
-      end-to-end since no real DB connected during UI build).
+- [x] US-1 auth implementation: registration UI/API, bcrypt user storage,
+      NextAuth credentials login and persisted JWT session, protected dashboard,
+      post-login redirect, and sign-out. Per-user API isolation remains a
+      required boundary for user-owned modules as those APIs are implemented.
 - [x] Dashboard page UI (placeholder data) + shared NavBar.
 - [x] Repo pushed to GitHub, all branches live.
 
 ## Week 1 — in progress / pending
 
-| Dev | User Story                                                         | Status                                                                                                  |
-| --- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| A   | US-1: signup, login, session, data isolation                       | Login UI done; signup UI + real end-to-end auth (session persistence, per-user isolation check) pending |
-| B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded (148 global ingredients in Atlas); search/typeahead API, recipe UI/API not started |
-| C   | US-5 assign to day/slot, US-9 navigate weeks                       | Not started — model exists, no UI or working API yet                                                    |
+| Dev | User Story                                                         | Status                                                                                                                                              |
+| --- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | US-1: signup, login, session, data isolation                       | Implemented; live Atlas browser smoke test pending. Ownership enforcement is ready via `session.user.id`; user-owned feature APIs do not exist yet. |
+| B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded (148 global ingredients in Atlas); search/typeahead API, recipe UI/API not started                                                 |
+| C   | US-5 assign to day/slot, US-9 navigate weeks                       | Not started — model exists, no UI or working API yet                                                                                                |
 
 **Week 1 integration checkpoint** (per spec Section 6): all three modules
 demoable together, even shallowly, before Week 2 begins. Not yet reached.

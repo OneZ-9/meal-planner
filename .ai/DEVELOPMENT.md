@@ -15,11 +15,11 @@ MongoDB connection — useful for pure UI work. Anything hitting
 
 ## Environment variables
 
-| Var               | Required for              | Notes                                                                                                             |
-| ----------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `MONGODB_URI`     | any API route / real auth | MongoDB Atlas connection string. Placeholder value lets the app boot for UI-only work but any DB call will throw. |
-| `NEXTAUTH_SECRET` | auth                      | `openssl rand -base64 32`                                                                                         |
-| `NEXTAUTH_URL`    | auth                      | `http://localhost:3000` locally                                                                                   |
+| Var           | Required for              | Notes                                                                                                             |
+| ------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `MONGODB_URI` | any API route / real auth | MongoDB Atlas connection string. Placeholder value lets the app boot for UI-only work but any DB call will throw. |
+| `AUTH_SECRET` | auth                      | Required outside Auth.js development fallback; generate with `openssl rand -base64 32`.                           |
+| `AUTH_URL`    | auth                      | Optional locally (`http://localhost:3000`); set to the canonical deployed URL in production.                      |
 
 ## Commands
 
@@ -102,10 +102,10 @@ All `page.tsx` and `layout.tsx` files in `app/` must follow these rules:
 
 ## Testing
 
-No test runner is set up yet. Spec's functional success measure is
-manual: "signup → recipe → calendar assignment → shopping list →
-checklist works end to end without errors." Add tests here once a
-framework is chosen — flag this gap in KNOWN_ISSUES.md until then.
+Vitest + React Testing Library run via `npm test -- --run`. Tests currently
+cover the root auth redirect and registration input validation. The spec's
+full functional success measure remains a manual end-to-end check:
+"signup → recipe → calendar assignment → shopping list → checklist."
 
 ## Documentation
 
@@ -116,7 +116,8 @@ framework is chosen — flag this gap in KNOWN_ISSUES.md until then.
 
 ## Security
 
-No API routes or auth exist yet, but once they do:
+Auth routes live at `app/api/auth/[...nextauth]` and
+`app/api/auth/register`. When adding or changing authenticated APIs:
 
 - Validate all inputs server-side (API routes, server actions) — never trust client-supplied data.
 - Use HTTP-only, secure cookies and CSRF protection for any session/auth flow; protect authenticated routes via middleware or explicit session checks, not client-side redirects alone.

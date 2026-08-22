@@ -3,20 +3,20 @@ import type { ReactElement } from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { LoginScreen } from "@/features/auth";
+import { RegistrationScreen } from "@/features/auth";
 
 export const metadata: Metadata = {
-  title: "Sign In | MealPrep Pro",
-  description: "Sign in to plan your meals and organize your shopping.",
+  title: "Create Account | MealPrep Pro",
+  description: "Create your MealPrep Pro account.",
 };
 
-const LoginPage = async (): Promise<ReactElement> => {
+const RegisterPage = async (): Promise<ReactElement> => {
   const session = await auth();
   if (session?.user) {
     redirect("/dashboard");
   }
 
-  return <LoginScreen />;
+  return <RegistrationScreen />;
 };
 
-export default LoginPage;
+export default RegisterPage;
