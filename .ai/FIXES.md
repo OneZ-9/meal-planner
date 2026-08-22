@@ -74,3 +74,27 @@ side effect), then re-run `npx tsc --noEmit`.
 **Solution**: `npm install -D @types/convert-units` — a community
 type-defs package exists and covers it.
 **Related**: DECISIONS.md (same-family unit conversion).
+
+---
+### Server startup fails with `querySrv ENOTFOUND _mongodb._tcp.<cluster>.mongodb.net`
+**Symptom**: On `npm run dev`, ingredient seeding (or any DB call) logs
+`Error: querySrv ENOTFOUND _mongodb._tcp.cluster0.xxxxx.mongodb.net` with
+`syscall: 'querySrv'`. Only happens on some devs' machines, not others,
+even though everyone shares the same `MONGODB_URI` (per DEVELOPMENT.md,
+there's no local Mongo — everyone points at the same Atlas cluster).
+**Cause**: `mongodb+srv://` connection strings require resolving a DNS
+**SRV** record, not just a normal A/AAAA lookup. Some networks/VPNs/
+routers/ISP DNS resolvers silently drop SRV and TXT queries, so the
+`mongodb+srv://` host never resolves — this is a local network/DNS issue
+on that dev's machine, not a MongoDB installation problem (no local
+MongoDB install is needed at all; the app only ever talks to Atlas).
+**Solution**: Have that dev try switching their machine's DNS to
+`8.8.8.8`/`1.1.1.1` or turning off any VPN, or (more robust) swap in
+Atlas's non-SRV **standard connection string** (Atlas → Connect →
+Drivers → "Standard connection string", format
+`mongodb://host1,host2,host3/...`) for their own `.env.local` — it skips
+the SRV DNS lookup entirely. Also confirm their IP is allowlisted under
+Atlas → Network Access (or "Allow access from anywhere" is enabled for
+the shared dev project), since that's the next failure they'll hit once
+DNS resolves.
+**Related**: DEVELOPMENT.md (Database), README.md (Getting started).

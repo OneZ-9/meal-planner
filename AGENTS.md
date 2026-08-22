@@ -46,9 +46,54 @@ part of the standard pickup sequence.
 - **`.ai/DEPLOYMENT.md`** — read before deploying or changing deploy config.
 - **`.ai/OPERATIONS.md`** — read when debugging a production incident or setting up monitoring.
 
-After finishing a unit of work: update `.ai/CURRENT.md` (short handover),
-`.ai/TASKS.md` (move the item to Done or update status), and add an entry
-to `.ai/DECISIONS.md` or `.ai/FIXES.md` if you made a non-obvious call or
-solved something that could recur. Stale docs here are actively
-misleading to the next person (or agent) — treat updating them as part
-of the task, not optional cleanup.
+## Mandatory: keep `.ai/` in sync with every change
+
+Updating the relevant `.ai/` file(s) is part of the change, not a
+follow-up step — a change isn't done until its docs are. This applies to
+any repo change an agent makes or observes: code, config, infra/deploy
+state, or one-off operations (e.g. running a seed script, provisioning a
+cluster), not just "finishing a task."
+
+Before ending a turn that changed something, update whichever of these
+apply:
+
+- **`.ai/CURRENT.md`** — always. Add/adjust the "Recent work" and "Next
+  action" bullets so the next session's first read reflects reality.
+- **`.ai/TASKS.md`** — move the item to Done, or update its status line,
+  whenever it maps to a tracked task/user story.
+- **`.ai/DECISIONS.md`** — add an entry for any non-obvious call (a
+  choice between two reasonable approaches, a deviation from what a doc
+  implied).
+- **`.ai/FIXES.md`** — add an entry for anything debugged that could
+  recur (a gotcha, a misleading error, an env quirk).
+- **`.ai/KNOWN_ISSUES.md`** — update if the change resolves or introduces
+  an MVP limitation.
+- **`.ai/DEPLOYMENT.md`** / **`.ai/OPERATIONS.md`** — update for
+  deploy/infra config changes or new operational gotchas.
+- **`.ai/ARCHITECTURE.md`** / **`.ai/PROJECT.md`** — update only for
+  actual structural/architectural changes (new module, changed data
+  flow, new directory) — don't restate a normal code change here.
+
+Stale docs here are actively misleading to the next person (or agent).
+When in doubt about whether something is "worth" documenting, prefer
+writing the one-line update — it's cheaper than the next session
+re-discovering or re-doing the work.
+
+## After any git pull/fetch+merge — reconcile `.ai/` automatically
+
+Incoming commits from `dev`, `main`, or a teammate's branch may not have
+followed the sync rule above. This step is self-triggered by the git
+operation itself, not by the user asking — run it right after any pull/
+merge/rebase, and also on discovering one already happened (e.g. local
+HEAD is ahead of what `.ai/CURRENT.md` describes at session start).
+
+1. Compare pre- and post-merge state: `git log <old-HEAD>..HEAD --oneline`
+   and `git diff <old-HEAD>..HEAD --stat` for what was fetched in, plus
+   `git status`/`git diff` for any of your own uncommitted local changes
+   still pending.
+2. Cross-check both against `.ai/CURRENT.md` and `.ai/TASKS.md`: anything
+   marked "pending"/"not started" that's now actually done (locally or
+   incoming), or "done" that got reverted/changed.
+3. Update `.ai/CURRENT.md` and `.ai/TASKS.md` (and `DECISIONS.md`/
+   `FIXES.md`/`KNOWN_ISSUES.md` where relevant) to reflect the combined
+   local + fetched state before starting new work on top of it.

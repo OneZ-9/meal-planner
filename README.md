@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Requires a running MongoDB instance and a `MONGODB_URI` in `.env.local` — see `.env.example`.
+Open [http://localhost:3000](http://localhost:3000). No local MongoDB install needed — the app connects to a shared MongoDB Atlas cluster. Copy `.env.example` to `.env.local` and fill in `MONGODB_URI` with the Atlas connection string (ask a teammate for the shared dev value). If startup fails with `querySrv ENOTFOUND ...`, your network/DNS is blocking the SRV lookup `mongodb+srv://` URIs need — see the fix in `.ai/FIXES.md`.
 
 ## Scripts
 

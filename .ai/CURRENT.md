@@ -12,6 +12,11 @@ module work starts.
 
 ## Recent work
 
+- Real MongoDB Atlas cluster is live (`meal-planner-live` DB, `MONGODB_URI`
+  in `.env.local`). Ran `scripts/seed-ingredients.mjs` against it — verified
+  148 global ingredients (`userId: null`) in the `ingredients` collection,
+  unique `userId_1_name_1` index built. Ingredient module's data layer is
+  ready; search/typeahead API and recipe CRUD still unbuilt.
 - Scaffolded Next.js App Router project, all 5 Mongoose models, stub API
   routes for every module.
 - Built `/login` page (real NextAuth wiring) matching the reference design.
@@ -26,6 +31,18 @@ module work starts.
   were retuned to match `DESIGN.md`'s exact palette (see DECISIONS.md); any
   page built from here on gets the correct colors automatically via the
   semantic Tailwind classes.
+- Diagnosed a teammate's `querySrv ENOTFOUND _mongodb._tcp.<cluster>...`
+  startup error: it's their machine's network/DNS blocking the SRV lookup
+  `mongodb+srv://` needs, not a missing local MongoDB install (none is
+  needed — everyone points at the shared Atlas cluster). Documented the
+  fix in `FIXES.md` and clarified `README.md`'s "Getting started" section
+  to say so explicitly instead of the misleading "requires a running
+  MongoDB instance."
+- `AGENTS.md`'s "After pulling/merging" section reworded: reconciling
+  `.ai/` docs against incoming commits is now a standing, self-triggered
+  step an agent runs automatically after any pull/fetch+merge/merge/
+  rebase (or on noticing one already happened), not something that
+  waits on a dev remembering to ask for it.
 
 ## Blocker
 
@@ -37,6 +54,8 @@ None currently.
    user story (see TASKS.md for the exact breakdown).
 2. Recipes and Calendar pages are still unbuilt (UI only exists for
    Login and Dashboard so far).
+3. With ingredients seeded, Dev B can move on to the search/typeahead API
+   and US-2/US-3/US-4 recipe CRUD.
 
 ## Validation state
 
