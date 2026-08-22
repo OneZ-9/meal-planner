@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 import HomePage from "./page";
 
 describe("HomePage", () => {
-  it("renders the heading", () => {
+  it("renders the sign-in experience", () => {
     render(<HomePage />);
     expect(
-      screen.getByRole("heading", { name: "Meal Planner" }),
+      screen.getByRole("heading", { name: "MealPrep Pro" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign In" })).toBeInTheDocument();
   });
 });

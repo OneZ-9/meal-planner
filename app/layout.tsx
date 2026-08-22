@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Meal Planner + Shopping List Generator",
-  description: "Plan your meals and generate shopping lists with ease",
+  title: "MealPrep Pro",
+  description: "Plan your meals, shop smarter.",
 };
 
 const RootLayout = ({ children }: LayoutProps<"/">): ReactElement => {
@@ -25,7 +25,7 @@ const RootLayout = ({ children }: LayoutProps<"/">): ReactElement => {
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col" cz-shortcut-listen="true">
+      <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
       </body>
     </html>
