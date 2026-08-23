@@ -8,123 +8,92 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-## Project state
+# Meal Planner + Auto Shopping List — agent instructions
 
-Next.js app (App Router) for a "Meal Planner + Shopping List Generator" (see `app/layout.tsx` metadata). Still early — `app/page.tsx` renders just a heading. The stack (React Query, Zustand, shadcn/ui, Vitest) is wired up and ready; MongoDB is connected via `lib/mongodb.ts`, but no collections, schemas, API routes, or meal-planning domain logic exist yet.
+This file is the entry point for the whole `.ai/` folder. Read the **core
+loop** below every session, in order, before touching code. Read the
+**situational** docs only when the listed trigger applies — they're not
+part of the standard pickup sequence.
 
-Keep current — update whenever what's actually built meaningfully changes, same as Project structure below. `README.md`'s own "Project state" section should stay in sync too, as plain status for human readers.
+## Core loop — read every session, in order
 
-## Commands
+1. **`.ai/CURRENT.md`** — what's happening right now; read this first every session.
+2. **`.ai/PROJECT.md`** — what this app is, stack, terminology, directory map.
+3. **`.ai/ARCHITECTURE.md`** — module boundaries, data flow, project structure, domain invariants.
+4. **`.ai/DELIVERY_PLAN.md`** — the Week 1/Week 2 delivery breakdown and success measures.
+5. **`.ai/TASKS.md`** — what's done, in progress, and pending, mapped to `.ai/DELIVERY_PLAN.md`'s user stories.
+6. **`.ai/DECISIONS.md`** — check before "fixing" something that might be intentional scope.
+7. **`.ai/KNOWN_ISSUES.md`** — MVP limitations and deferred features that are deliberate, not bugs.
+8. **`.ai/FIXES.md`** — check here before re-debugging something that's happened before.
+9. **`.ai/DEVELOPMENT.md`** — local setup, env vars, conventions, commands.
 
-- `npm run dev` — start the dev server (Next.js 16, Turbopack by default)
-- `npm run build` — production build
-- `npm run start` — run the production build
-- `npm run lint` — ESLint via `eslint-config-next` (flat config in `eslint.config.mjs`)
-- `npm test` — run the Vitest suite once (`npx vitest` for watch mode; `npx vitest run path/to/file.test.tsx` for a single file)
-- `npm run format` / `npm run format:check` — Prettier write / check
+## Situational — read when the trigger applies
 
-## Agent workflow
+- **`.ai/DESIGN.md`** — the UI visual and interaction contract (layout, spacing,
+  colors, typography, component patterns); read before implementing or
+  modifying any screen.
+- **`.ai/Unit_Conversion_Algorithm_Spec.md`** — read before touching shopping-list
+  generation or unit normalization; has the exact algorithm and verified
+  test cases (US-3, US-7).
+- **`.ai/MEAL_PLANNER_REQUIREMENTS.md`** — the full user stories (US-1–US-9) and
+  resolved open questions behind `.ai/DELIVERY_PLAN.md`/`.ai/TASKS.md`'s US-N IDs;
+  read when a task references a story ID you need the full acceptance criteria for.
+- **`.ai/Meal_Planner_Feature_List_MoSCoW.md`** — MoSCoW prioritization derived from
+  the requirements doc; read when scope/priority of a feature is unclear.
+- **`.ai/QA_Review_Edge_Cases.md`** — pre-implementation edge-case review of the
+  requirements; cross-check `.ai/DECISIONS.md` to see which items were resolved vs.
+  accepted as risk.
+- **`.ai/DEPLOYMENT.md`** — read before deploying or changing deploy config.
+- **`.ai/OPERATIONS.md`** — read when debugging a production incident or setting up monitoring.
 
-- Run the relevant verification commands (`npm run lint`, `npm test`, `npm run build`) at logical checkpoints, not after every single edit — before marking a task complete, before presenting results, or after a change that could plausibly affect compilation, types, or runtime behavior. Skip it for changes that can't break those (copy/label tweaks, comments, doc-only edits) unless bundled with other changes that do warrant it.
-- Do not rewrite external dependency files, settings, or config (`package.json`, `tsconfig.json`, `next.config.ts`, `eslint.config.mjs`, `postcss.config.mjs`, `components.json`, `vitest.config.mts`, etc.) without explicitly notifying the user first — surface what's changing and why rather than silently editing them.
+## Mandatory: keep `.ai/` in sync with every change
 
-## Stack notes
+Updating the relevant `.ai/` file(s) is part of the change, not a
+follow-up step — a change isn't done until its docs are. This applies to
+any repo change an agent makes or observes: code, config, infra/deploy
+state, or one-off operations (e.g. running a seed script, provisioning a
+cluster), not just "finishing a task."
 
-- **Next.js 16.3.1** with **React 19.2.8** — significantly newer than typical training data. Read the relevant guide under `node_modules/next/dist/docs/` before implementing routing, data fetching, or layout patterns, since APIs/conventions may have changed.
-- `app/layout.tsx` uses the typed layout props helper (`LayoutProps<"/">`) instead of a hand-written `{ children: React.ReactNode }` prop type — this is a newer Next.js typed-routes convention; follow the same pattern for other layouts/pages.
-- **Styling**: Tailwind CSS v4 via the `@tailwindcss/postcss` plugin — no `tailwind.config.js`/`.ts`; theme tokens live in `app/globals.css` under `@theme inline` and `:root`/`.dark`.
-- **Components**: shadcn/ui, configured via `components.json` (style `base-nova`, base color `neutral`). Generated primitives live in `components/ui/` (e.g. `components/ui/button.tsx`); the `cn()` class-merge helper is in `lib/utils.ts`. Add new components with `npx shadcn@latest add <name>` rather than hand-writing files in `components/ui/`, so they stay in sync with the generated variant/style conventions. Theme customization happens via the CSS custom properties in `app/globals.css`, not a Tailwind config file (v4 has none).
-  - This install uses shadcn's **base-ui** primitive library (`@base-ui/react`), not Radix — expect `@base-ui/react/*` imports in generated components, not `@radix-ui/*`.
-- **Fonts**: loaded via `next/font/google` in `app/layout.tsx` — Inter mapped to the CSS variable `--font-sans`, Geist Mono mapped to `--font-mono`. Must match exactly what `app/globals.css`'s `@theme inline` block references, or the font silently falls back to default.
-- **State management**: split by where the data lives — never duplicate the same value in both.
-  - **Remote/server state** (anything fetched from an API): `@tanstack/react-query`, always behind a custom hook — components never call `useQuery`/`useMutation`/`useInfiniteQuery` directly. `QueryClient` is created and provided via the client component `app/providers.tsx`, which wraps `children` inside `app/layout.tsx`.
-    - Raw network calls live in `lib/api/` (create it when the first API call is added), e.g. `lib/api/meals.ts` exporting `fetchMeals()`, `createMeal()`.
-    - Each feature wraps those calls in its own custom hooks under `features/<feature-name>/hooks/`, e.g. `useMeals()` (wraps `useQuery`), `useCreateMeal()` (wraps `useMutation`) — named for what they return/do, not for the React Query hook underneath. Components import and call `useMeals()`, not `useQuery`.
-    - Prefix query keys by domain, e.g. `["meals", id]`, `["shopping-list"]`.
-    - `app/providers.tsx` must keep `const [queryClient] = useState(() => new QueryClient())` — not a module-level `const queryClient = new QueryClient()` (leaks the cache across users/requests during SSR) and not an inline `new QueryClient()` in the render body (recreates the cache and cancels in-flight queries on every re-render).
-  - **Local/client state shared across components** (UI state, form state, anything not fetched from a server): `zustand`. Create a store per feature, e.g. `features/<feature-name>/hooks/use<Feature>Store.ts`, and export it through that feature's `index.ts` barrel only if another feature actually needs it. `zustand` needs no provider — `create()` stores are usable directly.
-  - State that only one component needs stays as plain `useState`/`useReducer` in that component — don't reach for `zustand` just because state exists.
-- **Database**: MongoDB via the official `mongodb` driver. `lib/mongodb.ts` exports `mongoClientPromise`, connected from `MONGODB_URI` and cached across HMR reloads in dev so it doesn't reconnect on every file save. Server-only — import it from API routes/server actions, never from client components. Client code still reaches this data exclusively through the React Query custom-hooks + `lib/api/` pattern above, calling those server routes rather than the database directly.
-- **Testing**: Vitest + React Testing Library + jsdom. Config is `vitest.config.mts` (the `.mts` extension avoids a CJS/ESM warning without setting `"type": "module"` in `package.json`); `vitest.setup.ts` loads `@testing-library/jest-dom` matchers. Tests are co-located next to source as `*.test.tsx` (see `app/page.test.tsx`). For components that read from `@tanstack/react-query` context (e.g. `useQuery`), use `renderWithProviders` from `test/test-utils.tsx` instead of `@testing-library/react`'s bare `render` — it wraps the tree in a fresh `QueryClientProvider` per test.
-- **Formatting**: Prettier with default rules (`.prettierrc.json` is intentionally empty); `.prettierignore` excludes `.next` and `node_modules`.
-- TypeScript is `strict`, with the `@/*` path alias mapped to the repo root (`tsconfig.json`); the same alias is mirrored in `vitest.config.mts` for tests.
-- **Environment variables**: Local overrides go in `.env.local` (gitignored via `.env*` in `.gitignore`); values the browser needs to read must be prefixed `NEXT_PUBLIC_`. `.env.example` documents the current names (`MONGODB_URI`, `PORT`) with empty values — it must be force-added to git (`git add -f`) since `.gitignore` ignores all `.env*` files by default.
-  - `PORT` in `.env.local` does **not** actually change the dev/start server's bound port — verified empirically: Next's CLI resolves the port from a real OS-level `PORT` env var before `.env.local` is loaded, so the file value is too late to matter. To actually change the port, export `PORT` at the shell (e.g. `PORT=4321 npm run dev`) or update the `dev`/`start` scripts in `package.json` to pass `-p` explicitly (needs sign-off per the "don't rewrite config" rule above).
+Before ending a turn that changed something, update whichever of these
+apply:
 
-## Project structure
+- **`.ai/CURRENT.md`** — always. Add/adjust the "Recent work" and "Next
+  action" bullets so the next session's first read reflects reality.
+- **`.ai/TASKS.md`** — move the item to Done, or update its status line,
+  whenever it maps to a tracked task/user story.
+- **`.ai/DECISIONS.md`** — add an entry for any non-obvious call (a
+  choice between two reasonable approaches, a deviation from what a doc
+  implied).
+- **`.ai/FIXES.md`** — add an entry for anything debugged that could
+  recur (a gotcha, a misleading error, an env quirk).
+- **`.ai/KNOWN_ISSUES.md`** — update if the change resolves or introduces
+  an MVP limitation.
+- **`.ai/DEPLOYMENT.md`** / **`.ai/OPERATIONS.md`** — update for
+  deploy/infra config changes or new operational gotchas.
+- **`.ai/ARCHITECTURE.md`** / **`.ai/PROJECT.md`** — update only for
+  actual structural/architectural changes (new module, changed data
+  flow, new directory) — don't restate a normal code change here.
 
-```
-.
-├── app/                  # App Router: pages, layouts, providers, co-located tests
-│   ├── layout.tsx
-│   ├── page.tsx
-│   ├── page.test.tsx
-│   ├── providers.tsx
-│   └── globals.css
-├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── lib/               # Shared helpers: utils.ts, mongodb.ts (lib/api/ once queries exist)
-├── test/              # Shared test helpers (test/test-utils.tsx)
-├── public/            # Static assets
-├── components.json    # shadcn/ui config
-├── vitest.config.mts / vitest.setup.ts
-└── .env.local         # local-only env overrides (gitignored)
-```
+Stale docs here are actively misleading to the next person (or agent).
+When in doubt about whether something is "worth" documenting, prefer
+writing the one-line update — it's cheaper than the next session
+re-discovering or re-doing the work.
 
-This reflects the current layout — update it here as the structure actually changes, don't let it drift into aspiration. `features/` isn't present yet — see Feature-based architecture below for what it will look like once the first feature is built.
+## After any git pull/fetch+merge — reconcile `.ai/` automatically
 
-## Feature-based architecture
+Incoming commits from `dev`, `main`, or a teammate's branch may not have
+followed the sync rule above. This step is self-triggered by the git
+operation itself, not by the user asking — run it right after any pull/
+merge/rebase, and also on discovering one already happened (e.g. local
+HEAD is ahead of what `.ai/CURRENT.md` describes at session start).
 
-- Group each feature's components and feature-specific logic under `features/<feature-name>/` (e.g. `features/meal-plan/`, `features/shopping-list/`) — don't put feature UI directly in `app/` or in the shared `components/ui/` folder (that's reserved for shadcn/ui primitives).
-- Suggested layout inside each feature folder:
-  ```
-  features/<feature-name>/
-  ├── components/   # feature-specific UI components
-  ├── hooks/        # feature-specific hooks (state, queries, mutations)
-  └── index.ts      # barrel export — what app/ is allowed to import
-  ```
-- `app/page.tsx` (and other route files) are presentation-only: they import a feature's top-level component from `features/` and render it. See the "contain no state management logic" rule in Page and Layout file conventions below.
-- `features/` doesn't exist yet — create it when the first feature lands, following this structure instead of putting components or state directly in `app/`.
-
-## Code style
-
-- Prefer small PRs: one feature/fix per PR.
-- Follow existing patterns before introducing new ones.
-- Use `const` exclusively. Never `var`, never `let` unless reassignment is needed.
-- Keep functions < 60 lines unless there's a strong reason.
-- Prefer arrow functions for components and helpers.
-- Annotate function return types explicitly.
-- Avoid `any`; use `unknown` or a proper generic instead.
-- Group imports in this order: react → next → third-party libraries → local (`@/...`).
-- Use meaningful names for variables, functions, props, and parameters — avoid generic names (`data`, `item`, `temp`) or single letters, outside of trivial, obvious scopes like a one-line array callback.
-- Don't duplicate logic across multiple places — extract it into a function, export it, and import it everywhere it's needed (DRY).
-
-## Page and Layout file conventions
-
-All `page.tsx` and `layout.tsx` files in `app/` must follow these rules:
-
-- Always export a `metadata` const of type `Metadata`
-- Function names must end with **`Page`** for pages and **`Layout`** for layouts
-- Contain no state management logic — no `useState`, `useReducer`, `useQuery`, `useEffect`, etc. directly in a page or layout file. Import and render a component from `features/` (see Feature-based architecture below) instead; the page's job is only to compose and display it.
-
-## Component conventions
-
-- Default to shadcn/ui primitives (added via `npx shadcn@latest add <name>`) for form elements, cards, dialogs, and similar UI — don't hand-roll a component shadcn already provides.
-- Style with Tailwind utility classes; there are no CSS modules in this project.
-- Always destructure props in the function signature.
-- Named exports only. Never default exports — except `page.tsx`, `layout.tsx`, and `route.ts` files, which Next.js requires to be default exports (see Page and Layout file conventions above).
-
-## Documentation
-
-- Be concise, specific, and value dense
-- Give exported components and hooks a short comment describing their intended usage when it isn't obvious from the name and signature.
-- Write so that a new developer to this codebase can understand your writing, don’t assume your audience are experts in the topic/area you are writing about.
-- Keep `README.md` current as real setup steps, conventions, or gotchas emerge.
-
-## Security
-
-No API routes or auth exist yet, but once they do:
-
-- Validate all inputs server-side (API routes, server actions) — never trust client-supplied data.
-- Use HTTP-only, secure cookies and CSRF protection for any session/auth flow; protect authenticated routes via middleware or explicit session checks, not client-side redirects alone.
-- Never log secrets/tokens or commit `.env`/secret-bearing files.
-- Do not modify auth without explicit instruction; if unsure about a migration, stop and ask.
+1. Compare pre- and post-merge state: `git log <old-HEAD>..HEAD --oneline`
+   and `git diff <old-HEAD>..HEAD --stat` for what was fetched in, plus
+   `git status`/`git diff` for any of your own uncommitted local changes
+   still pending.
+2. Cross-check both against `.ai/CURRENT.md` and `.ai/TASKS.md`: anything
+   marked "pending"/"not started" that's now actually done (locally or
+   incoming), or "done" that got reverted/changed.
+3. Update `.ai/CURRENT.md` and `.ai/TASKS.md` (and `DECISIONS.md`/
+   `FIXES.md`/`KNOWN_ISSUES.md` where relevant) to reflect the combined
+   local + fetched state before starting new work on top of it.

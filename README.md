@@ -9,7 +9,13 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Requires a running MongoDB instance and a `MONGODB_URI` in `.env.local` — see `.env.example`.
+Open [http://localhost:3000](http://localhost:3000). No local MongoDB install
+is needed — the app connects to MongoDB Atlas. Copy `.env.example` to
+`.env.local`, set `MONGODB_URI`, and generate `AUTH_SECRET` with
+`openssl rand -base64 32`; `AUTH_URL` is `http://localhost:3000` locally. Ask a
+teammate for the shared dev database value. If startup fails with
+`querySrv ENOTFOUND ...`, your network/DNS is blocking the SRV lookup
+`mongodb+srv://` URIs need — see `.ai/FIXES.md`.
 
 ## Scripts
 
@@ -19,6 +25,7 @@ Open [http://localhost:3000](http://localhost:3000). Requires a running MongoDB 
 - `npm run lint` — ESLint
 - `npm test` — run the Vitest suite once (`npx vitest` for watch mode)
 - `npm run format` / `npm run format:check` — Prettier write / check
+- `node --env-file=.env.local scripts/seed-ingredients.mjs` — seed the canonical ingredients collection (idempotent, safe to re-run)
 
 ## Stack
 
@@ -34,4 +41,4 @@ Project conventions — feature-folder structure, state management rules, code s
 
 ## Project state
 
-Early stage: the app currently renders a placeholder home page. MongoDB is connected, but no collections, API routes, or meal-planning domain logic exist yet.
+Early stage: the app currently renders a placeholder home page. MongoDB is connected with one seeded collection (canonical ingredients), but no API routes or meal-planning UI exist yet.

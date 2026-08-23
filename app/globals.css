@@ -48,41 +48,59 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Color values below are pinned to .ai/DESIGN.md Section 2 (Core Design
+ * Tokens) via the mapping table in Section 2.3. If a value changes here,
+ * update DESIGN.md in the same change, and vice versa - they must never
+ * drift apart. Components should consume these through the semantic
+ * Tailwind classes (bg-primary, text-foreground, bg-muted, ...), not
+ * hard-coded hex values.
+ */
 :root {
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.508 0.118 165.612);
-  --primary-foreground: oklch(0.979 0.021 166.113);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  --card: #ffffff; /* --color-surface */
+  --card-foreground: #0b1c30; /* --color-text-primary */
+  --popover: #ffffff; /* --color-surface */
+  --popover-foreground: #0b1c30; /* --color-text-primary */
+  --primary: #006c49; /* --color-primary */
+  --primary-foreground: #ffffff; /* --color-on-primary */
+  --secondary: #eff4ff; /* --color-surface-muted */
+  --secondary-foreground: #0b1c30; /* --color-text-primary */
+  --muted: #eff4ff; /* --color-surface-muted */
+  --muted-foreground: #41536a; /* --color-text-secondary */
+  --accent: #dae2fd; /* --color-selected */
+  --accent-foreground: #0b1c30; /* --color-text-primary */
+  --destructive: #d92d3a; /* --color-error */
+  --border: #d6dde5; /* --color-border */
+  --input: #d6dde5; /* --color-border */
+  --ring: #006c49; /* --color-primary */
   --chart-1: oklch(0.879 0.169 91.605);
   --chart-2: oklch(0.769 0.188 70.08);
   --chart-3: oklch(0.666 0.179 58.318);
   --chart-4: oklch(0.555 0.163 48.998);
   --chart-5: oklch(0.473 0.137 46.201);
+  /* 0.625rem (10px) yields radius-sm/md/lg of 6/8/10px via the @theme
+     multipliers above, matching DESIGN.md Section 5 exactly; radius-xl
+     computes to 14px vs. the spec's 12px - an accepted, documented
+     deviation (see DESIGN.md Section 2.3). */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.596 0.145 163.225);
-  --sidebar-primary-foreground: oklch(0.979 0.021 166.113);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --sidebar: #eff4ff; /* --color-surface-muted */
+  --sidebar-foreground: #0b1c30; /* --color-text-primary */
+  --sidebar-primary: #006c49; /* --color-primary */
+  --sidebar-primary-foreground: #ffffff; /* --color-on-primary */
+  --sidebar-accent: #dae2fd; /* --color-selected */
+  --sidebar-accent-foreground: #0b1c30; /* --color-text-primary */
+  --sidebar-border: #d6dde5; /* --color-border */
+  --sidebar-ring: #006c49; /* --color-primary */
+  --background: #f8f9ff; /* --color-background */
+  --foreground: #0b1c30; /* --color-text-primary */
 }
 
+/*
+ * Dark mode is unspecified by .ai/DESIGN.md (Section 1 describes a
+ * light-only aesthetic; no reference screenshot has a dark variant).
+ * These are shadcn scaffold defaults, not design-approved values - do
+ * not treat them as a real dark theme without a product decision.
+ */
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);

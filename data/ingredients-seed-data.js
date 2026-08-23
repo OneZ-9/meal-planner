@@ -1,7 +1,7 @@
 /**
  * Canonical ingredient seed data for Meal Planner + Auto Shopping List.
  *
- * Schema (matches Meal_Planner_Requirements.md):
+ * Schema (matches MEAL_PLANNER_REQUIREMENTS.md):
  *   name            - display name, used for typeahead search
  *   unitFamily      - "weight" | "volume" | "count"
  *                     the ingredient's natural purchase unit
@@ -25,11 +25,11 @@
  * These are cooking-grade approximations, not lab measurements — solid for
  * a shopping list, worth a direct spot-check against the KAB chart if a
  * specific ingredient's precision ever matters. See
- * Meal_Planner_Requirements.md > "Ingredient Seed Data — Source & Methodology"
+ * MEAL_PLANNER_REQUIREMENTS.md > "Ingredient Seed Data — Source & Methodology"
  * for the full write-up.
  *
  * Nutrition/macro fields were deliberately left out of this schema — see
- * decision #11 in Meal_Planner_Requirements.md. A single average weight
+ * decision #11 in MEAL_PLANNER_REQUIREMENTS.md. A single average weight
  * per count-based item (e.g. grams per onion) hides too much natural size
  * variation to trust for a precision-sensitive feature, even though it's
  * fine for a shopping list.
