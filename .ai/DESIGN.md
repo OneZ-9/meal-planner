@@ -270,14 +270,14 @@ The one exception is a screen with no persistent surface behind it (currently on
 The application has a persistent top navigation bar on every authenticated screen (Dashboard, Recipe Library, Calendar, Shopping List). The Login screen (Section 9) does not use this shell.
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│ MealPrep Pro   Dashboard   Recipes   Calendar   Shopping │
-│                                                   profile│
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│                    PAGE CONTENT                         │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ MealPrep Pro   Dashboard   Ingredients   Recipes   Calendar  Shopping │
+│                                                              profile │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│                    PAGE CONTENT                                     │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Header
@@ -312,10 +312,19 @@ Items:
 
 ```text
 Dashboard
+Ingredients
 Recipes
 Calendar
 Shopping List
 ```
+
+`Ingredients` was added after the original 4-item spec, once the
+standalone `/ingredients` page (not itself a numbered reference screen in
+this document) needed a way to be reached from the UI — see DECISIONS.md
+"Custom ingredients feature (US-3)" for why. It sits right after
+Dashboard, ahead of Recipes, since ingredients are a prerequisite for
+building recipes (a recipe's ingredient rows reference the canonical
+ingredient list — see ARCHITECTURE.md §8).
 
 Normal state:
 

@@ -98,11 +98,13 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 .
 ├── app/                  # App Router: pages, layouts, providers, co-located tests
 │   ├── api/auth/         # NextAuth handler + registration route
+│   ├── api/ingredients/  # Ingredient search/create (+ [id] update) routes
 │   ├── login/ register/  # Public auth pages
 │   ├── dashboard/        # Server-protected dashboard page
+│   ├── ingredients/      # Server-protected ingredient management page
 │   └── layout.tsx, page.tsx, providers.tsx, globals.css
 ├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── features/          # Auth, app shell, and dashboard feature UI
+├── features/          # Auth, app shell, dashboard, and ingredients feature UI
 ├── lib/               # Shared helpers, validation, MongoDB, and Mongoose models
 ├── auth.ts            # NextAuth credentials/session configuration
 ├── types/             # NextAuth session type augmentation
@@ -1109,6 +1111,15 @@ Agents must preserve these rules.
 - Ingredient creation requires a name and unit family.
 - Duplicate protection must be applied.
 - Newly created ingredients are immediately searchable.
+- Only the ingredient's owner may edit it; global/seeded ingredients
+  (`userId: null`) and other users' ingredients are read-only through the
+  Ingredient module's API.
+- Editing a custom ingredient affects every recipe that references it
+  immediately (live reference, same principle as §21's recipe-edit
+  propagation) — the user must be warned before confirming an edit. See
+  DECISIONS.md for why this warning is generic text rather than an
+  affected-recipe count in this delivery.
+- Ingredient delete is not implemented — see KNOWN_ISSUES.md.
 
 ### Recipes
 

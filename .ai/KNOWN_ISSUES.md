@@ -10,6 +10,16 @@
 - **No self-service password recovery.** A locked-out user has no
   recovery path this delivery; manual DB fix is the accepted stopgap.
 - **One recipe per calendar slot.** No multi-recipe slots, no offline mode.
+- **Custom ingredient delete is not implemented.** Only create + update
+  exist. Deleting an ingredient needs a reference check against recipes
+  (same pattern as recipe-delete warning on assigned calendar days,
+  ARCHITECTURE.md §22) — not buildable until the Recipe module exists.
+  Add it then; see DECISIONS.md "Custom ingredients feature (US-3)".
+- **Ingredient edit warning has no real affected-recipe count.** The
+  "updating this ingredient will affect recipes that use it" confirmation
+  shown before saving an edit is generic text, not a live count, because
+  the Recipe model doesn't exist yet. Upgrade to a real count once Recipes
+  is built — see DECISIONS.md.
 
 ## Accepted risks (per spec)
 

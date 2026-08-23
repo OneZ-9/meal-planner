@@ -6,6 +6,7 @@ import { signOut } from "@/auth";
 
 const navigation = [
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Ingredients", href: "/ingredients" },
   { label: "Recipes", href: "/recipes" },
   { label: "Calendar", href: "/calendar" },
   { label: "Shopping List", href: "/shopping-list" },
