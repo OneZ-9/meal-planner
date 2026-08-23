@@ -254,6 +254,7 @@ export const IngredientsManager = (): ReactElement => {
 
       <IngredientFormDialog
         errorMessage={errorMessage}
+        onClearError={() => setErrorMessage(null)}
         initialValues={
           dialogState?.mode === "edit"
             ? {

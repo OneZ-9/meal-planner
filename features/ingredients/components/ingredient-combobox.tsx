@@ -131,6 +131,7 @@ export const IngredientCombobox = ({
 
       <IngredientFormDialog
         errorMessage={conflict ? "An ingredient with this name already exists." : null}
+        onClearError={() => setConflict(null)}
         initialValues={{
           name: debouncedQuery,
           unitFamily: "weight",

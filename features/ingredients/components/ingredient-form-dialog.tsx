@@ -46,6 +46,7 @@ type IngredientFormDialogProps = {
   initialValues?: IngredientInput;
   isSubmitting: boolean;
   errorMessage: string | null;
+  onClearError: () => void;
   onSubmit: (values: IngredientInput) => void;
 };
 
@@ -62,6 +63,7 @@ export const IngredientFormDialog = ({
   initialValues,
   isSubmitting,
   errorMessage,
+  onClearError,
   onSubmit,
 }: IngredientFormDialogProps): ReactElement => {
   const [name, setName] = useState(initialValues?.name ?? "");
@@ -141,7 +143,10 @@ export const IngredientFormDialog = ({
                 </label>
                 <Input
                   id="ingredient-name"
-                  onChange={(event) => setName(event.target.value)}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    onClearError();
+                  }}
                   placeholder="e.g. Smoked paprika"
                   required
                   value={name}
@@ -162,6 +167,7 @@ export const IngredientFormDialog = ({
                     if (nextUnitFamily === "count") {
                       setDensity("");
                     }
+                    onClearError();
                   }}
                   value={unitFamily}
                 >
@@ -191,7 +197,10 @@ export const IngredientFormDialog = ({
                   <Input
                     id="ingredient-density"
                     min="0"
-                    onChange={(event) => setDensity(event.target.value)}
+                    onChange={(event) => {
+                      setDensity(event.target.value);
+                      onClearError();
+                    }}
                     placeholder="Leave blank if unknown"
                     step="any"
                     type="number"
