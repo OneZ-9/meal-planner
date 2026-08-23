@@ -12,6 +12,28 @@ ingredient management page.
 
 ## Recent work
 
+- Added `Ingredients` to `AppNav` as the 2nd item (after Dashboard, ahead
+  of Recipes — ingredients are a prerequisite for building recipes),
+  updated `DESIGN.md` §7 to match (on explicit request, superseding the
+  earlier "direct URL only" call — see DECISIONS.md).
+- Fixed the `/ingredients` list only ever showing 50 results (it reused
+  the typeahead endpoint's flat cap) by splitting the two use cases:
+  `GET /api/ingredients` now returns `{ items, nextCursor }` (offset
+  pagination, `cursor`/`limit`/`scope` params) instead of a flat array;
+  `IngredientsManager` uses a new `useInfiniteIngredients` hook
+  (`useInfiniteQuery`) with an `IntersectionObserver` sentinel for real
+  infinite scroll. Verified live against Atlas: all 148 seeded
+  ingredients are now reachable by paging through with `scope=global`.
+  `useIngredientSearch` (the recipe-picker combobox) is unchanged in
+  behavior — still a flat top-20 typeahead slice, not paginated. See
+  DECISIONS.md "Ingredient list pagination + scope filter".
+- Added a 3-way scope filter (All / My Ingredients / Global) to
+  `IngredientsManager`, and a clear ("×") button to both ingredient
+  search inputs (list page + combobox) so clearing doesn't require
+  backspacing manually.
+- Ingredient names display capitalized in the UI (`capitalize` CSS,
+  display-only — stored/API data untouched); unit family labels were
+  tried capitalized too but reverted per feedback, still lowercase.
 - Implemented custom ingredients (US-3): `GET /api/ingredients` (search,
   scoped to global + own), `POST /api/ingredients` (create, with a
   proactive case-insensitive duplicate check that returns 409 + the
@@ -38,7 +60,7 @@ ingredient management page.
   duplicate detection (both on create and on rename), confirmed a user
   cannot edit another user's or a global ingredient (403) and doesn't see
   another user's custom ingredients in search, then deleted all test data.
-- `npx tsc --noEmit`, `npm run lint`, `npm test -- --run` (5 files, 25
+- `npx tsc --noEmit`, `npm run lint`, `npm test -- --run` (5 files, 28
   tests now), and `npm run build` all pass.
 
 - Implemented US-1 authentication in this checkout: `/register` creates a
@@ -103,16 +125,25 @@ None currently.
 
 ## Validation state
 
-- `npx tsc --noEmit` and `npm run lint` — clean after the custom-ingredients
-  change.
-- `npm test -- --run` passes (5 files, 25 tests); coverage includes
-  registration validation, root auth redirects, ingredient validation, and
-  the ingredient API routes (search scoping, create/update ownership,
+- `npx tsc --noEmit` and `npm run lint` — clean after the ingredient
+  pagination/scope-filter change.
+- `npm test -- --run` passes (5 files, 28 tests); coverage includes
+  registration validation, root auth redirects, ingredient validation,
+  and the ingredient API routes (search scoping incl. `scope=custom`/
+  `scope=global`, pagination `nextCursor`, create/update ownership,
   duplicate-check 409s, 403/404 cases).
 - `npm run build` passes; local HTTP smoke checks return 200 for `/login`
   and `/register`, and 307 `/login` for a signed-out `/dashboard` request.
-- Ingredient endpoints were exercised live against the real Atlas cluster
-  (see "Recent work" above) — registration/login smoke test is no longer
-  outstanding for that flow. Test data was cleaned up afterward.
+- Ingredient endpoints (including the new pagination/scope params) were
+  exercised live against the real Atlas cluster — paged through all 148
+  seeded ingredients via `scope=global`, confirmed `scope=custom` isolates
+  per-user results, confirmed `nextCursor` behavior at page boundaries.
+  Test data was cleaned up afterward.
+- Infinite-scroll UI (IntersectionObserver) and the scope-filter chips
+  were verified via the API-level pagination checks above and code
+  review, not a headless-browser interaction test — no browser automation
+  tool (chromium-cli/Playwright/Puppeteer) is available in this
+  environment. Worth a manual click-through in a real browser before
+  considering this fully done.
 - Recipe/Calendar/Shopping-List API routes still don't exist yet (not
   stubs — never scaffolded on this branch; see git history).

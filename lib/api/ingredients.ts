@@ -14,6 +14,13 @@ export type IngredientInput = {
   densityGPerMl: number | null;
 };
 
+export type IngredientScope = "all" | "custom" | "global";
+
+export type IngredientsPage = {
+  items: IngredientDTO[];
+  nextCursor: number | null;
+};
+
 export class IngredientConflictError extends Error {
   ingredient: IngredientDTO | null;
 
@@ -30,16 +37,35 @@ const parseErrorMessage = async (response: Response): Promise<string> => {
     "Something went wrong. Please try again.";
 };
 
-export const searchIngredients = async (
-  query: string,
-): Promise<IngredientDTO[]> => {
-  const response = await fetch(
-    `/api/ingredients?q=${encodeURIComponent(query)}`,
-  );
+const defaultSearchLimit = 20;
+
+export const fetchIngredients = async (params: {
+  query?: string;
+  scope?: IngredientScope;
+  cursor?: number;
+  limit?: number;
+}): Promise<IngredientsPage> => {
+  const searchParams = new URLSearchParams();
+  if (params.query) searchParams.set("q", params.query);
+  if (params.scope && params.scope !== "all") searchParams.set("scope", params.scope);
+  if (params.cursor) searchParams.set("cursor", String(params.cursor));
+  if (params.limit) searchParams.set("limit", String(params.limit));
+
+  const response = await fetch(`/api/ingredients?${searchParams.toString()}`);
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response));
   }
   return response.json();
+};
+
+// Top-N typeahead results only (no pagination) — for the recipe-picker
+// combobox, which narrows via search rather than scrolling. The full
+// browsable/paginated list lives behind useInfiniteIngredients instead.
+export const searchIngredients = async (
+  query: string,
+): Promise<IngredientDTO[]> => {
+  const page = await fetchIngredients({ query, limit: defaultSearchLimit });
+  return page.items;
 };
 
 export const createIngredient = async (

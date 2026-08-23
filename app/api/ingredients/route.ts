@@ -12,36 +12,68 @@ const isDuplicateKeyError = (error: unknown): boolean =>
   "code" in error &&
   error.code === 11000;
 
+const defaultLimit = 20;
+const maxLimit = 100;
+
+const parsePositiveInt = (value: string | null, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 // Ingredient module owns search — see ARCHITECTURE.md "Search boundary".
-// Scoped to the global seeded set plus this user's own custom ingredients
-// (the "hybrid ingredient list" decision in DECISIONS.md).
+// `scope` narrows to just the global seeded set ("global"), just the
+// user's own ("custom"), or both (default "all") — the "hybrid ingredient
+// list" decision in DECISIONS.md. Cursor-paginated (offset-based cursor;
+// see DECISIONS.md "Ingredient list pagination") so the ingredients page
+// can infinite-scroll through the full list instead of a flat cap.
 export const GET = async (request: NextRequest): Promise<NextResponse> => {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
 
-  const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
+  const searchParams = request.nextUrl.searchParams;
+  const query = searchParams.get("q")?.trim() ?? "";
+  const scope = searchParams.get("scope") ?? "all";
+  const cursor = Math.max(0, parsePositiveInt(searchParams.get("cursor"), 0));
+  const limit = Math.min(
+    maxLimit,
+    parsePositiveInt(searchParams.get("limit"), defaultLimit),
+  );
 
   await connectDB();
-  const filter: Record<string, unknown> = {
-    $or: [{ userId: null }, { userId: session.user.id }],
-  };
+  const scopeFilter =
+    scope === "custom"
+      ? { userId: session.user.id }
+      : scope === "global"
+        ? { userId: null }
+        : { $or: [{ userId: null }, { userId: session.user.id }] };
+
+  const filter: Record<string, unknown> = { ...scopeFilter };
   if (query.length > 0) {
     filter.name = { $regex: query, $options: "i" };
   }
 
-  const ingredients = await IngredientModel.find(filter).sort({ name: 1 }).limit(50);
+  // Fetch one extra document to know whether another page exists, without
+  // a separate count query.
+  const documents = await IngredientModel.find(filter)
+    .sort({ name: 1, _id: 1 })
+    .skip(cursor)
+    .limit(limit + 1);
 
-  return NextResponse.json(
-    ingredients.map((ingredient) => ({
-      id: ingredient.id,
-      name: ingredient.name,
-      unitFamily: ingredient.unitFamily,
-      densityGPerMl: ingredient.densityGPerMl,
-      isCustom: ingredient.userId !== null,
-    })),
-  );
+  const hasMore = documents.length > limit;
+  const items = documents.slice(0, limit).map((ingredient) => ({
+    id: ingredient.id,
+    name: ingredient.name,
+    unitFamily: ingredient.unitFamily,
+    densityGPerMl: ingredient.densityGPerMl,
+    isCustom: ingredient.userId !== null,
+  }));
+
+  return NextResponse.json({
+    items,
+    nextCursor: hasMore ? cursor + limit : null,
+  });
 };
 
 // Creates a custom ingredient owned by the current user (US-3). Checks for

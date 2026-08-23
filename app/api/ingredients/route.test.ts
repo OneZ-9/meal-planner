@@ -26,9 +26,11 @@ const asSession = (userId: string): Session => ({
   expires: "2099-01-01T00:00:00.000Z",
 });
 
-const buildGetRequest = (query = ""): NextRequest =>
+const buildGetRequest = (
+  params: Record<string, string> = {},
+): NextRequest =>
   ({
-    nextUrl: { searchParams: new URLSearchParams(query ? { q: query } : {}) },
+    nextUrl: { searchParams: new URLSearchParams(params) },
   }) as unknown as NextRequest;
 
 const buildPostRequest = (body: unknown): Request =>
@@ -42,17 +44,24 @@ describe("GET /api/ingredients", () => {
     vi.clearAllMocks();
   });
 
+  const mockFindChain = (docs: unknown[]): void => {
+    const limit = vi.fn().mockResolvedValue(docs);
+    const skip = vi.fn().mockReturnValue({ limit });
+    const sort = vi.fn().mockReturnValue({ skip });
+    mockedFind.mockReturnValue({ sort } as never);
+  };
+
   it("rejects a signed-out request", async () => {
     mockedAuth.mockResolvedValue(null);
 
-    const response = await GET(buildGetRequest("sugar"));
+    const response = await GET(buildGetRequest({ q: "sugar" }));
 
     expect(response.status).toBe(401);
   });
 
-  it("scopes search to global and the current user's ingredients", async () => {
+  it("scopes search to global and the current user's ingredients by default", async () => {
     mockedAuth.mockResolvedValue(asSession("user-1"));
-    const limit = vi.fn().mockResolvedValue([
+    mockFindChain([
       {
         id: "ing-1",
         name: "Sugar",
@@ -68,20 +77,57 @@ describe("GET /api/ingredients", () => {
         userId: "user-1",
       },
     ]);
-    const sort = vi.fn().mockReturnValue({ limit });
-    mockedFind.mockReturnValue({ sort } as never);
 
-    const response = await GET(buildGetRequest("sugar"));
+    const response = await GET(buildGetRequest({ q: "sugar" }));
     const body = await response.json();
 
     expect(mockedFind).toHaveBeenCalledWith({
       $or: [{ userId: null }, { userId: "user-1" }],
       name: { $regex: "sugar", $options: "i" },
     });
-    expect(body).toEqual([
-      { id: "ing-1", name: "Sugar", unitFamily: "weight", densityGPerMl: null, isCustom: false },
-      { id: "ing-2", name: "Sugar Substitute", unitFamily: "weight", densityGPerMl: 0.9, isCustom: true },
-    ]);
+    expect(body).toEqual({
+      items: [
+        { id: "ing-1", name: "Sugar", unitFamily: "weight", densityGPerMl: null, isCustom: false },
+        { id: "ing-2", name: "Sugar Substitute", unitFamily: "weight", densityGPerMl: 0.9, isCustom: true },
+      ],
+      nextCursor: null,
+    });
+  });
+
+  it("filters to only the current user's ingredients when scope=custom", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockFindChain([]);
+
+    await GET(buildGetRequest({ scope: "custom" }));
+
+    expect(mockedFind).toHaveBeenCalledWith({ userId: "user-1" });
+  });
+
+  it("filters to only global ingredients when scope=global", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockFindChain([]);
+
+    await GET(buildGetRequest({ scope: "global" }));
+
+    expect(mockedFind).toHaveBeenCalledWith({ userId: null });
+  });
+
+  it("returns a nextCursor when more results exist beyond the page limit", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    const docs = Array.from({ length: 3 }, (_, index) => ({
+      id: `ing-${index}`,
+      name: `Ingredient ${index}`,
+      unitFamily: "weight",
+      densityGPerMl: null,
+      userId: null,
+    }));
+    mockFindChain(docs); // limit + 1 = 3 docs returned for a limit of 2
+
+    const response = await GET(buildGetRequest({ limit: "2", cursor: "0" }));
+    const body = await response.json();
+
+    expect(body.items).toHaveLength(2);
+    expect(body.nextCursor).toBe(2);
   });
 });
 

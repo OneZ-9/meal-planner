@@ -57,6 +57,48 @@ scope calls made during planning, recorded here:
   `mongodb`, which use Node built-ins like `tls` — into the client bundle
   and broke the production build. See FIXES.md for the exact error.
 
+## Ingredient list pagination + scope filter
+
+The `/ingredients` page originally called the same `GET /api/ingredients`
+endpoint the typeahead combobox uses, which capped results at 50 — with
+148 seeded ingredients alone, the list was never showing everything.
+Fixed by splitting the two use cases:
+
+- **`GET /api/ingredients` now returns `{ items, nextCursor }`** instead
+  of a flat array, using offset pagination (`cursor`/`limit` query
+  params, default `limit=20`, capped at 100 server-side). The handler
+  fetches `limit + 1` documents to know whether another page exists
+  without a separate count query. Sort is `{ name: 1, _id: 1 }` (the
+  `_id` tiebreaker keeps ordering stable across pages when names repeat
+  or ties occur).
+- **Offset (`skip`/`limit`), not a cursor encoding the last document.**
+  Simpler to reason about and implement, and fine at this dataset size —
+  see ARCHITECTURE.md §36 ("MVP is designed for a relatively small
+  dataset... do not prematurely introduce complex optimization"). If the
+  ingredient list grows enough for `skip` to become a real cost, switch
+  to a keyset cursor (`{name, _id} > lastSeen`) then, not now.
+  Not paginated further — reuse over the composite `{ name: 1, _id: 1 }`
+  index already implied by the current sort — an explicit index isn't
+  added yet since it isn't needed at seed-list scale; add one if the
+  collection grows large enough for `.sort()` to need it.
+- **`scope` query param (`all` | `custom` | `global`, default `all`)**
+  narrows the filter to just the user's own ingredients or just the
+  seeded set. Exposed in `IngredientsManager` as a 3-way toggle
+  (All / My Ingredients / Global), styled per DESIGN.md §32's "Toggle /
+  selectable tag" pattern.
+- **`useIngredientSearch` (combobox) stays a flat top-N list, not
+  paginated** — the recipe-picker typeahead is meant to narrow via
+  search, not scroll through the whole list, so it just requests
+  `limit=20` and takes `.items`. Only the standalone `/ingredients` page
+  got a new `useInfiniteIngredients` hook (`useInfiniteQuery`) + an
+  `IntersectionObserver` sentinel at the bottom of the list to
+  auto-load the next page — real infinite scroll, not a "Load more"
+  button.
+- Added a clear ("×") button to both search inputs (`ingredients-manager.tsx`
+  and `ingredient-combobox.tsx`) so clearing a search doesn't require
+  backspacing manually; it resets both the raw and debounced query state
+  immediately (no need to wait out the 300ms debounce).
+
 ## DESIGN.md coverage + globals.css token mapping
 
 `DESIGN.md` originally listed all 6 reference screenshots but only documented

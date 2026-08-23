@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Search } from "lucide-react";
+import { Loader2, Plus, Search, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { useIngredientSearch } from "../hooks/useIngredientSearch";
@@ -47,6 +47,11 @@ export const IngredientCombobox = ({
     setDebouncedQuery("");
   };
 
+  const clearSearch = (): void => {
+    setQuery("");
+    setDebouncedQuery("");
+  };
+
   const handleCreateSubmit = (values: {
     name: string;
     unitFamily: IngredientDTO["unitFamily"];
@@ -71,11 +76,21 @@ export const IngredientCombobox = ({
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          className="pl-8"
+          className="pl-8 pr-8"
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder}
           value={query}
         />
+        {query.length > 0 && (
+          <button
+            aria-label="Clear search"
+            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={clearSearch}
+            type="button"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
       </div>
 
       {debouncedQuery.length > 0 && (

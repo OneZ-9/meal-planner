@@ -45,11 +45,15 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
 - [x] Custom ingredients (US-3): `GET/POST /api/ingredients`,
       `PATCH /api/ingredients/[id]`, `lib/ingredientValidation.ts`,
       `features/ingredients/` (search hook, create/update hooks,
-      `IngredientCombobox`, standalone `/ingredients` page). Delete
-      intentionally excluded — see KNOWN_ISSUES.md. Verified with unit
-      tests (`npm test`) and a live end-to-end run against the real Atlas
-      cluster (register → login → search/create/update → ownership +
-      duplicate checks, then cleaned up).
+      `IngredientCombobox`, standalone `/ingredients` page, reachable
+      from `AppNav`). Delete intentionally excluded — see KNOWN_ISSUES.md.
+      `/ingredients` supports infinite-scroll pagination and an
+      All/My Ingredients/Global scope filter (`GET /api/ingredients`
+      returns `{ items, nextCursor }`, params `cursor`/`limit`/`scope`).
+      Verified with unit tests (`npm test`) and live end-to-end runs
+      against the real Atlas cluster (register → login →
+      search/create/update → ownership + duplicate checks → paged
+      through all 148 seeded ingredients, then cleaned up).
 - [ ] Vercel project connected (see DEPLOYMENT.md).
 - [ ] Recipes page UI (`/recipes`), Calendar page UI (`/calendar`),
       Shopping List page UI (`/shopping-list`) — none built yet, only
