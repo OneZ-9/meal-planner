@@ -20,7 +20,7 @@ refer to that plan.
 | Dev | User Story                                                         | Status                                                                                                                                              |
 | --- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A   | US-1: signup, login, session, data isolation                       | Implemented; live Atlas browser smoke test pending. Ownership enforcement is ready via `session.user.id`; user-owned feature APIs do not exist yet. |
-| B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded (148 global ingredients in Atlas); search/typeahead API, recipe UI/API not started                                                 |
+| B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded; search/typeahead API, create, and update (US-3) implemented and tested — see below. Delete deferred (KNOWN_ISSUES.md). Recipe UI/API not started |
 | C   | US-5 assign to day/slot, US-9 navigate weeks                       | Not started — model exists, no UI or working API yet                                                                                                |
 
 **Week 1 integration checkpoint** (per spec Section 6): all three modules
@@ -42,10 +42,22 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       (`userId: null`), unique `userId_1_name_1` index built.
 - [x] Real MongoDB Atlas cluster provisioned + `MONGODB_URI` shared with team
       (in `.env.local`, `meal-planner-live` database).
+- [x] Custom ingredients (US-3): `GET/POST /api/ingredients`,
+      `PATCH /api/ingredients/[id]`, `lib/ingredientValidation.ts`,
+      `features/ingredients/` (search hook, create/update hooks,
+      `IngredientCombobox`, standalone `/ingredients` page, reachable
+      from `AppNav`). Delete intentionally excluded — see KNOWN_ISSUES.md.
+      `/ingredients` supports infinite-scroll pagination and an
+      All/My Ingredients/Global scope filter (`GET /api/ingredients`
+      returns `{ items, nextCursor }`, params `cursor`/`limit`/`scope`).
+      Verified with unit tests (`npm test`) and live end-to-end runs
+      against the real Atlas cluster (register → login →
+      search/create/update → ownership + duplicate checks → paged
+      through all 148 seeded ingredients, then cleaned up).
 - [ ] Vercel project connected (see DEPLOYMENT.md).
 - [ ] Recipes page UI (`/recipes`), Calendar page UI (`/calendar`),
       Shopping List page UI (`/shopping-list`) — none built yet, only
-      Login and Dashboard.
+      Login, Dashboard, and Ingredients.
 
 ## Explicitly deferred (Future Features, not MVP)
 

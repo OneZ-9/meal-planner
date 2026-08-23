@@ -98,3 +98,27 @@ Atlas → Network Access (or "Allow access from anywhere" is enabled for
 the shared dev project), since that's the next failure they'll hit once
 DNS resolves.
 **Related**: DEVELOPMENT.md (Database), README.md (Getting started).
+
+---
+### `npm run build` fails with "Module not found: Can't resolve 'tls'" (or 'net', 'fs', etc.)
+**Symptom**: `next build` errors deep in `node_modules/mongodb/lib/...`
+with `Can't resolve 'tls'`, and the import trace ends at a feature
+screen component, e.g. `./features/<feature>/components/<screen>.tsx
+[Client Component Browser]` → `./auth.ts [Client Component Browser]`.
+**Cause**: A screen component had `"use client"` at the top (because it
+holds `useState`/React Query hooks) *and* also directly rendered
+`<AppNav />`, which imports `signOut` from `@/auth`. `@/auth` pulls in
+`lib/mongodb.ts` → `mongoose` → `mongodb`, which use Node-only built-ins
+that don't exist in a browser bundle. Once the screen file is a Client
+Component, everything it statically imports — including `AppNav` even
+though `app-nav.tsx` itself has no `"use client"` — gets pulled into the
+client bundle too.
+**Solution**: Keep the top-level screen component (the one that renders
+`<AppNav />`) as a Server Component (no `"use client"`), same as
+`DashboardScreen`. Move any state/hooks into a separate nested
+`"use client"` component that does *not* import `AppNav` or anything
+else that transitively imports `@/auth`. See
+`features/ingredients/components/ingredients-screen.tsx` (server shell)
+vs. `ingredients-manager.tsx` (client content) for the pattern.
+**Related**: PROJECT.md (state management), DECISIONS.md (custom
+ingredients feature).

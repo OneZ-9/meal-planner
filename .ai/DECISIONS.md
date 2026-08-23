@@ -1,3 +1,104 @@
+## Custom ingredients feature (US-3): CRUD scope, duplicate handling, standalone page
+
+Implemented search/typeahead (`GET /api/ingredients`), create (`POST`), and
+update (`PATCH /api/ingredients/[id]`) for canonical ingredients, plus a
+reusable `IngredientCombobox` and a standalone `/ingredients` page. Several
+scope calls made during planning, recorded here:
+
+- **Delete is intentionally not implemented.** Only create + update
+  shipped this pass. Rationale: the Recipe module doesn't exist yet, so
+  there's no way to check whether a recipe references an ingredient before
+  deleting it (the same reference-check ARCHITECTURE.md §22 requires for
+  recipe deletes). Adding delete now would mean either skipping that check
+  (unsafe once Recipes exists), or building it speculatively against a
+  Recipe model that doesn't exist yet — both worse than just deferring.
+  Tracked as a known gap in KNOWN_ISSUES.md for whoever builds Recipes.
+- **Editing an ingredient always shows a confirmation warning first**
+  ("Updating this ingredient will affect any recipe that already uses it")
+  before the `PATCH` fires, client-side, via an `AlertDialog` step in
+  `ingredient-form-dialog.tsx`. This is **generic text, not an actual
+  affected-recipe count** — computing a real count needs the Recipe model,
+  which doesn't exist yet. When Recipes is built, upgrade this to a live
+  count the same way recipe-delete already warns with an affected-days
+  count (ARCHITECTURE.md §22).
+- **Duplicate handling returns 409 with the existing ingredient**, rather
+  than letting the unique index throw a raw duplicate-key error. Both
+  `POST` and `PATCH` proactively `findOne(...).collation({strength: 2})`
+  before writing, matching the existing case-insensitive, per-scope
+  uniqueness rule (see "Decisions resolved for this plan" below). This
+  keeps the duplicate-key index as a safety net for races, not the
+  primary UX path.
+- **Ownership rule for edit:** only the ingredient's own creator can
+  `PATCH` it. Global ingredients (`userId: null`) and other users'
+  ingredients return `403`. This preserves the existing accepted risk
+  (bad seeded data has no in-app correction path — manual DB edit is
+  still the stopgap) rather than opening a new correction surface.
+- **Added a standalone `/ingredients` page, ahead of DESIGN.md.**
+  DESIGN.md's reference screens only show ingredient search/create
+  embedded inside the not-yet-built Create Recipe screen (§29.2) — there
+  is no "manage ingredients" screen in the design spec. Built one anyway
+  (explicit user request) so custom ingredients are directly usable
+  before Recipes exists. It reuses the same visual tokens/patterns as the
+  spec'd screens (card list, primary button, search field) but is not
+  itself a spec'd reference screen — don't treat its exact layout as a
+  DESIGN.md contract the way the other screens are. `AppNav`'s nav items
+  were initially left unchanged (DESIGN.md §7 fixed them to
+  Dashboard/Recipes/Calendar/Shopping List), page reachable by direct URL
+  only. **Superseded on explicit request**: added `Ingredients` to
+  `AppNav` (`features/app-shell/components/app-nav.tsx`), positioned 2nd —
+  right after Dashboard, ahead of Recipes — since ingredients are a
+  prerequisite for building recipes; updated DESIGN.md §7 to match, so
+  the page is now reachable from the persistent top nav on every
+  authenticated screen.
+- **`IngredientsScreen` is a Server Component; the interactive parts live
+  in a nested `IngredientsManager` client component.** Putting the search/
+  dialog state directly in a `"use client"` `IngredientsScreen` (which
+  also renders `AppNav`) pulled `@/auth` — and therefore `mongoose`/
+  `mongodb`, which use Node built-ins like `tls` — into the client bundle
+  and broke the production build. See FIXES.md for the exact error.
+
+## Ingredient list pagination + scope filter
+
+The `/ingredients` page originally called the same `GET /api/ingredients`
+endpoint the typeahead combobox uses, which capped results at 50 — with
+148 seeded ingredients alone, the list was never showing everything.
+Fixed by splitting the two use cases:
+
+- **`GET /api/ingredients` now returns `{ items, nextCursor }`** instead
+  of a flat array, using offset pagination (`cursor`/`limit` query
+  params, default `limit=20`, capped at 100 server-side). The handler
+  fetches `limit + 1` documents to know whether another page exists
+  without a separate count query. Sort is `{ name: 1, _id: 1 }` (the
+  `_id` tiebreaker keeps ordering stable across pages when names repeat
+  or ties occur).
+- **Offset (`skip`/`limit`), not a cursor encoding the last document.**
+  Simpler to reason about and implement, and fine at this dataset size —
+  see ARCHITECTURE.md §36 ("MVP is designed for a relatively small
+  dataset... do not prematurely introduce complex optimization"). If the
+  ingredient list grows enough for `skip` to become a real cost, switch
+  to a keyset cursor (`{name, _id} > lastSeen`) then, not now.
+  Not paginated further — reuse over the composite `{ name: 1, _id: 1 }`
+  index already implied by the current sort — an explicit index isn't
+  added yet since it isn't needed at seed-list scale; add one if the
+  collection grows large enough for `.sort()` to need it.
+- **`scope` query param (`all` | `custom` | `global`, default `all`)**
+  narrows the filter to just the user's own ingredients or just the
+  seeded set. Exposed in `IngredientsManager` as a 3-way toggle
+  (All / My Ingredients / Global), styled per DESIGN.md §32's "Toggle /
+  selectable tag" pattern.
+- **`useIngredientSearch` (combobox) stays a flat top-N list, not
+  paginated** — the recipe-picker typeahead is meant to narrow via
+  search, not scroll through the whole list, so it just requests
+  `limit=20` and takes `.items`. Only the standalone `/ingredients` page
+  got a new `useInfiniteIngredients` hook (`useInfiniteQuery`) + an
+  `IntersectionObserver` sentinel at the bottom of the list to
+  auto-load the next page — real infinite scroll, not a "Load more"
+  button.
+- Added a clear ("×") button to both search inputs (`ingredients-manager.tsx`
+  and `ingredient-combobox.tsx`) so clearing a search doesn't require
+  backspacing manually; it resets both the raw and debounced query state
+  immediately (no need to wait out the 300ms debounce).
+
 ## DESIGN.md coverage + globals.css token mapping
 
 `DESIGN.md` originally listed all 6 reference screenshots but only documented
