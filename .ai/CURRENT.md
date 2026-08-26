@@ -6,11 +6,62 @@
 
 ## Objective (right now)
 
-Custom ingredients (US-3) implemented on top of the completed US-1 auth
-work: ingredient search/typeahead, create, and update, plus a standalone
-ingredient management page.
+Recipe module (US-2/US-3-integration/US-4) implemented on top of the
+completed US-1 auth and Ingredients work: recipe create/edit/delete/list
+with canonical-ingredient rows, tags, prep time, and instructions.
 
 ## Recent work
+
+- Implemented the Recipe module (US-2 create, US-4 edit/delete; recipes
+  have no global scope, always private to their owner — unlike
+  ingredients). Added `lib/models/recipe.ts` (`RecipeModel`, `RecipeUnit`
+  matching `.ai/Unit_Conversion_Algorithm_Spec.md`'s
+  `RecipeIngredientEntry` unit set exactly, so the not-yet-built
+  shopping-list module can consume recipe ingredient rows without
+  reshaping them), `lib/recipeValidation.ts` (structural validation:
+  name/servings/ingredients required, zero-ingredient and
+  missing-quantity/unit rejected per US-2), `lib/recipeDto.ts` +
+  `lib/recipeIngredients.ts` (DTO shaping and ingredient-visibility
+  resolution shared by the API routes), and
+  `app/api/recipes/route.ts` + `app/api/recipes/[id]/route.ts`
+  (GET list+search, POST, GET one, PATCH, DELETE — all scoped to
+  `session.user.id`, 404 rather than 403 for another user's recipe since
+  recipe existence itself is private). Every ingredient row is checked
+  against the ingredient module for visibility (global or the user's own)
+  before a recipe can reference it (ARCHITECTURE.md "Recipe -> Ingredient
+  Boundary").
+- Added `features/recipes/`: `RecipesScreen` (Recipe Library — search,
+  tag-derived sidebar filters, recipe cards, delete confirmation) and
+  `RecipeFormScreen` (shared Create/Edit form used by both `/recipes/new`
+  and `/recipes/[id]/edit`, reusing `IngredientCombobox` for ingredient
+  rows). Recipe cards always show the DESIGN.md empty-image placeholder
+  (no image upload — not a modeled Recipe field, matches
+  ARCHITECTURE.md/DESIGN.md's Create Recipe form, which has no image
+  input) and derive their description preview from the recipe's own
+  ingredient names rather than a separate free-text field.
+- **Recipe delete does not yet warn about affected calendar days or
+  cascade-remove calendar assignments** (ARCHITECTURE.md §22) — the
+  Calendar module doesn't exist yet, so there is nothing to check against.
+  Mirrors the same deferral already accepted for ingredient delete; upgrade
+  both once Calendar is built. See DECISIONS.md and KNOWN_ISSUES.md.
+- Added shadcn primitive `textarea` (for recipe instructions).
+- Fixed a second instance of the `features/*` barrel Client-Component
+  bundling issue from FIXES.md: `recipe-form.tsx` (a Client Component)
+  was importing `IngredientCombobox` from the `features/ingredients`
+  barrel, which also re-exports the server-safe `IngredientsScreen` (→
+  `@/auth` → `mongoose` → `tls`), breaking `npm run build`. Fixed by
+  importing `IngredientCombobox` directly from its component file — see
+  FIXES.md for the general pattern to watch for.
+- `npx tsc --noEmit`, `npm run lint`, and `npm run build` all pass.
+  `npm test` / `npx vitest run` could **not** be verified this session —
+  Vitest 4's `rolldown` dependency fails to load its native binding on
+  this machine (`Cannot find native binding... npm has a bug related to
+  optional dependencies`, npm/cli#4828) regardless of a clean
+  `node_modules`/`package-lock.json` reinstall under the current Node
+  v20.15.1. Recipe tests were written (`lib/recipeValidation.test.ts`,
+  `app/api/recipes/route.test.ts`, `app/api/recipes/[id]/route.test.ts`,
+  mirroring the existing ingredient test patterns) and verified by
+  reading, not by running. See FIXES.md.
 
 - Added `Ingredients` to `AppNav` as the 2nd item (after Dashboard, ahead
   of Recipes — ingredients are a prerequisite for building recipes),
@@ -115,16 +166,28 @@ None currently.
 1. Set a strong `AUTH_SECRET` locally and in the deployment environment, then
    manually exercise registration/login against the intended Atlas database.
 2. Apply `auth()` checks and `session.user.id` ownership filters to every
-   user-owned API as recipe/calendar/shopping-list routes are implemented
-   (Ingredients now does this — recipe/calendar/shopping-list routes are
-   the ones still pending).
-3. Recipes and Calendar pages remain unbuilt — Recipes is the natural next
-   target, since it's what the ingredient module (`IngredientCombobox`) was
-   built to plug into next, and it unblocks ingredient delete (needs a
-   reference check against recipes — see KNOWN_ISSUES.md).
+   user-owned API as calendar/shopping-list routes are implemented
+   (Ingredients and Recipes now both do this — calendar/shopping-list
+   routes are the ones still pending).
+3. Calendar is the natural next target: no `calendar-entry` model or API
+   exists yet. Building it unblocks (a) real recipe-delete day-count
+   warnings + assignment cascade (ARCHITECTURE.md §22, currently deferred
+   — see this file's "Recent work" and KNOWN_ISSUES.md) and (b) ingredient
+   delete's reference check (see KNOWN_ISSUES.md).
+4. Resolve the Vitest/rolldown native-binding environment issue (see
+   FIXES.md) so `npm test` is runnable again on this machine — needed to
+   actually execute the Recipe test files written this session (and the
+   existing ingredient/auth tests).
 
 ## Validation state
 
+- Recipe module: `npx tsc --noEmit`, `npm run lint`, and `npm run build`
+  all pass (build includes the barrel-import fix above). `npx vitest run`
+  fails to start on this machine — pre-existing environment issue, not
+  caused by this change (see FIXES.md) — so the new recipe tests are
+  unverified by execution, only by reading. Not manually exercised against
+  live Atlas in a browser this session (no browser automation tool
+  available, same limitation noted below for ingredients).
 - `npx tsc --noEmit` and `npm run lint` — clean after the ingredient
   pagination/scope-filter change.
 - `npm test -- --run` passes (5 files, 28 tests); coverage includes

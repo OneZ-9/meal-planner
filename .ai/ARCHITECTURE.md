@@ -99,12 +99,14 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 ├── app/                  # App Router: pages, layouts, providers, co-located tests
 │   ├── api/auth/         # NextAuth handler + registration route
 │   ├── api/ingredients/  # Ingredient search/create (+ [id] update) routes
+│   ├── api/recipes/      # Recipe CRUD (+ [id] get/update/delete) routes
 │   ├── login/ register/  # Public auth pages
 │   ├── dashboard/        # Server-protected dashboard page
 │   ├── ingredients/      # Server-protected ingredient management page
+│   ├── recipes/          # Server-protected Recipe Library, create, and edit pages
 │   └── layout.tsx, page.tsx, providers.tsx, globals.css
 ├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── features/          # Auth, app shell, dashboard, and ingredients feature UI
+├── features/          # Auth, app shell, dashboard, ingredients, and recipes feature UI
 ├── lib/               # Shared helpers, validation, MongoDB, and Mongoose models
 ├── auth.ts            # NextAuth credentials/session configuration
 ├── types/             # NextAuth session type augmentation

@@ -13,13 +13,25 @@
 - **Custom ingredient delete is not implemented.** Only create + update
   exist. Deleting an ingredient needs a reference check against recipes
   (same pattern as recipe-delete warning on assigned calendar days,
-  ARCHITECTURE.md §22) — not buildable until the Recipe module exists.
-  Add it then; see DECISIONS.md "Custom ingredients feature (US-3)".
+  ARCHITECTURE.md §22) — the Recipe module now exists (`RecipeModel`,
+  `app/api/recipes/`), so this is now buildable: query
+  `RecipeModel.find({ "ingredients.ingredientId": id })` before allowing
+  delete. Still not implemented this session — out of scope for the
+  Recipe module itself. See DECISIONS.md "Custom ingredients feature
+  (US-3)".
 - **Ingredient edit warning has no real affected-recipe count.** The
   "updating this ingredient will affect recipes that use it" confirmation
-  shown before saving an edit is generic text, not a live count, because
-  the Recipe model doesn't exist yet. Upgrade to a real count once Recipes
-  is built — see DECISIONS.md.
+  shown before saving an edit is generic text, not a live count. The
+  Recipe model now exists, but computing this count wasn't part of the
+  Recipe module's own scope — upgrade to a real count as a small
+  follow-up (query recipes referencing the ingredient's `_id`).
+- **Recipe delete has no affected-calendar-day warning or cascade.**
+  ARCHITECTURE.md §22 calls for warning the user with an affected-day
+  count and removing calendar assignments when a recipe assigned to the
+  calendar is deleted — not implemented, because the Calendar module
+  doesn't exist yet (no `calendar-entry` model or API). The client shows
+  a generic "this cannot be undone" confirmation instead. Upgrade once
+  Calendar is built — see DECISIONS.md "Recipe module (US-2/US-4)".
 
 ## Accepted risks (per spec)
 
