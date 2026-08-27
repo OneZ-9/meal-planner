@@ -6,11 +6,51 @@
 
 ## Objective (right now)
 
-Recipe module (US-2/US-3-integration/US-4) implemented on top of the
-completed US-1 auth and Ingredients work: recipe create/edit/delete/list
-with canonical-ingredient rows, tags, prep time, and instructions.
+Calendar module (US-5 assign recipe to day/slot, US-9 navigate weeks)
+implemented on top of the completed US-1 auth, Ingredients, and Recipes
+work: weekly grid, recipe assignment/replacement, and Prev/Today/Next week
+navigation.
 
 ## Recent work
+
+- Implemented the Calendar module (US-5/US-9): `lib/models/calendarEntry.ts`
+  (`CalendarEntryModel`, unique `(userId, date, mealSlot)` per assignment —
+  assigning again on an occupied slot replaces via upsert rather than
+  erroring), `lib/mealSlot.ts` (the `MealSlot`/`MEAL_SLOTS` source of truth,
+  deliberately kept free of the Mongoose import so client components can use
+  it — see FIXES.md), `lib/dateWeek.ts` (Mon-Sun week math via the newly
+  added `date-fns` dependency — no date library existed in this project
+  before), `lib/calendarValidation.ts`, `lib/calendarDto.ts`, and
+  `GET/POST /api/calendar` + `DELETE /api/calendar/[id]`. Added
+  `features/calendar/`: `CalendarScreen` (`/calendar`, DESIGN.md Section
+  28's Weekly Plan grid) with week navigation, an assign-recipe dialog that
+  searches the user's own recipes (reusing the existing recipe search API),
+  and a meal chip with a Change/Remove kebab menu. Empty grid cells render
+  with no visible icon, matching DESIGN.md's explicit "no placeholder
+  affordance" rule, while still being clickable.
+- A first pass also upgraded recipe delete to warn about affected calendar
+  days and cascade-remove assignments (ARCHITECTURE.md §22, previously
+  deferred pending the Calendar module's existence) — **this was explicitly
+  reverted at the user's request** to keep the session scoped to the
+  Calendar module only. Recipe delete is therefore unchanged from before
+  this session: no affected-day warning, no cascade. Deleting a recipe
+  still assigned to the calendar now leaves orphaned calendar entries
+  (silently dropped from `GET /api/calendar`'s response, not erroring) —
+  see KNOWN_ISSUES.md and DECISIONS.md "Calendar module (US-5/US-9)" for the
+  full reasoning and what upgrading this later would involve.
+- `npx tsc --noEmit`, `npm run lint`, and `npm run build` all pass. Hit and
+  fixed the FIXES.md "tls"/mongoose client-bundle bug in a new form: a
+  `"use client"` grid component imported the `MEAL_SLOTS` constant directly
+  from `lib/models/calendarEntry.ts`, pulling Mongoose into the browser
+  bundle — fixed by extracting `MealSlot`/`MEAL_SLOTS` into the new
+  model-free `lib/mealSlot.ts`. `npm test -- --run` still cannot execute on
+  this machine (pre-existing Vitest/rolldown native-binding issue, see
+  FIXES.md) — new tests (`lib/dateWeek.test.ts`,
+  `lib/calendarValidation.test.ts`, `app/api/calendar/route.test.ts`,
+  `app/api/calendar/[id]/route.test.ts`) were verified by reading, not
+  execution. Not manually exercised in a live browser (no browser
+  automation tool available in this environment, same limitation noted for
+  every prior feature).
 
 - Implemented the Recipe module (US-2 create, US-4 edit/delete; recipes
   have no global scope, always private to their owner — unlike
@@ -166,21 +206,36 @@ None currently.
 1. Set a strong `AUTH_SECRET` locally and in the deployment environment, then
    manually exercise registration/login against the intended Atlas database.
 2. Apply `auth()` checks and `session.user.id` ownership filters to every
-   user-owned API as calendar/shopping-list routes are implemented
-   (Ingredients and Recipes now both do this — calendar/shopping-list
-   routes are the ones still pending).
-3. Calendar is the natural next target: no `calendar-entry` model or API
-   exists yet. Building it unblocks (a) real recipe-delete day-count
-   warnings + assignment cascade (ARCHITECTURE.md §22, currently deferred
-   — see this file's "Recent work" and KNOWN_ISSUES.md) and (b) ingredient
-   delete's reference check (see KNOWN_ISSUES.md).
-4. Resolve the Vitest/rolldown native-binding environment issue (see
+   user-owned API as shopping-list routes are implemented (Ingredients,
+   Recipes, and Calendar now all do this — shopping-list is the one
+   remaining module).
+3. Shopping List (US-7/US-8) is the natural next target: reads the Calendar
+   module's assignments + Recipe ingredients, normalizes/merges quantities
+   per `.ai/Unit_Conversion_Algorithm_Spec.md`, and needs its own
+   checked-state persistence (US-8). No shopping-list model or API exists
+   yet.
+4. Upgrade recipe delete to warn about affected calendar days and cascade
+   the removal of those assignments (ARCHITECTURE.md §22) — buildable now
+   that `CalendarEntryModel` exists, but deliberately left undone this
+   session (see KNOWN_ISSUES.md and DECISIONS.md "Calendar module
+   (US-5/US-9)"). Do this before or alongside Shopping List, since a
+   dangling calendar entry pointing at a deleted recipe would otherwise
+   surface as a confusing gap in a generated shopping list.
+5. Resolve the Vitest/rolldown native-binding environment issue (see
    FIXES.md) so `npm test` is runnable again on this machine — needed to
-   actually execute the Recipe test files written this session (and the
-   existing ingredient/auth tests).
+   actually execute the Recipe and Calendar test files written across
+   sessions (and the existing ingredient/auth tests).
 
 ## Validation state
 
+- Calendar module: `npx tsc --noEmit`, `npm run lint`, and `npm run build`
+  all pass. `npx vitest run` still fails to start on this machine (same
+  pre-existing environment issue, see FIXES.md), so
+  `lib/dateWeek.test.ts`, `lib/calendarValidation.test.ts`,
+  `app/api/calendar/route.test.ts`, and `app/api/calendar/[id]/route.test.ts`
+  are unverified by execution, only by reading. Not manually exercised in a
+  live browser this session (no browser automation tool available, same
+  limitation noted throughout this file).
 - Recipe module: `npx tsc --noEmit`, `npm run lint`, and `npm run build`
   all pass (build includes the barrel-import fix above). `npx vitest run`
   fails to start on this machine — pre-existing environment issue, not
@@ -208,5 +263,6 @@ None currently.
   tool (chromium-cli/Playwright/Puppeteer) is available in this
   environment. Worth a manual click-through in a real browser before
   considering this fully done.
-- Recipe/Calendar/Shopping-List API routes still don't exist yet (not
-  stubs — never scaffolded on this branch; see git history).
+- Shopping-List API routes still don't exist yet (not a stub — never
+  scaffolded on this branch; see git history). Recipe and Calendar routes
+  are both now implemented.
