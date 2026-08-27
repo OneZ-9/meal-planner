@@ -10,6 +10,9 @@ export const useDeleteRecipe = (): UseMutationResult<void, Error, string> => {
     mutationFn: deleteRecipe,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      // The route cascades to calendar assignments (ARCHITECTURE.md §22),
+      // so any open Weekly Plan view must refetch to drop the removed chips.
+      queryClient.invalidateQueries({ queryKey: ["calendar"] });
     },
   });
 };

@@ -73,7 +73,11 @@ side effect), then re-run `npx tsc --noEmit`.
 **Cause**: The `convert-units` npm package ships without a `.d.ts`.
 **Solution**: `npm install -D @types/convert-units` — a community
 type-defs package exists and covers it.
-**Related**: DECISIONS.md (same-family unit conversion).
+**Related**: DECISIONS.md (same-family unit conversion). **Update**: this
+never ended up applying — when Shopping List was actually built, the
+conversion ratios were hand-rolled instead of using `convert-units`, to
+match `Unit_Conversion_Algorithm_Spec.md`'s verified test cases exactly.
+See DECISIONS.md "Shopping List generation (US-7/US-8)".
 
 ---
 ### Server startup fails with `querySrv ENOTFOUND _mongodb._tcp.<cluster>.mongodb.net`
@@ -147,3 +151,33 @@ is always safe regardless, since TypeScript elides it entirely — this only
 bites *value* imports (constants, enums-as-objects, functions).
 **Related**: The `@/auth` variant above; DECISIONS.md "Calendar module
 (US-5/US-9)".
+
+---
+### `npx vitest run` now works on this machine — previously-unrun tests exposed two real bugs
+**Symptom**: Every prior session (auth/ingredients/recipes/calendar) noted
+`npx vitest run` failing to start with `Cannot find native binding...` (a
+Vitest 4 `rolldown` optional-dependency issue) and verified new test files
+by reading only. As of the recipe-delete-cascade session, `npx vitest run`
+starts and completes normally (97 tests, 13 files) with no reinstall or
+Node version change — cause of the fix is unknown; it may have been an
+`npm`/rolldown release update pulled in by an unrelated `npm install`.
+**What running the suite for the first time found**: (1)
+`app/api/recipes/route.test.ts` and `app/api/recipes/[id]/route.test.ts`
+both mocked `@/lib/models/recipe` with only `{ RecipeModel: {...} }`,
+omitting the module's `RECIPE_UNITS` value export that
+`lib/recipeValidation.ts` imports at runtime — every POST/PATCH test that
+reached validation crashed with "No RECIPE_UNITS export is defined on the
+mock." (2) `lib/recipeValidation.ts`'s tag dedup used `new Set(...)`,
+which is case-sensitive, so `["Dinner", "dinner"]` produced two tags
+instead of one — the test for this (written the same session as the
+feature, never executed until now) caught it immediately.
+**Solution**: For the mock gap, use `vi.mock("@/lib/models/recipe", async
+(importOriginal) => ({ ...(await importOriginal()), RecipeModel: {...}
+}))` instead of a bare object literal, so real value exports like
+`RECIPE_UNITS` survive alongside the mocked `RecipeModel`. For the dedup
+bug, dedupe by `tag.toLowerCase()` into a `Map` (keeps first-seen casing)
+instead of a plain `Set`.
+**Related**: Every prior `.ai/CURRENT.md` "Validation state" section
+(tests "written but unverified by execution"); if this resurfaces on
+another machine, `npm ci` in a clean checkout is the first thing to try
+before assuming it's a real regression.

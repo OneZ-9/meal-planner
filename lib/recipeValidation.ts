@@ -77,11 +77,15 @@ export const validateRecipeInput = (input: unknown): RecipeInputValidation => {
     ) {
       return { success: false, message: "Tags must be a list of text values." };
     }
-    tags = Array.from(
-      new Set(
-        candidate.tags.map((tag) => tag.trim().replace(/\s+/g, " ")).filter(Boolean),
-      ),
-    );
+    const seenTags = new Map<string, string>();
+    candidate.tags
+      .map((tag) => tag.trim().replace(/\s+/g, " "))
+      .filter(Boolean)
+      .forEach((tag) => {
+        const key = tag.toLowerCase();
+        if (!seenTags.has(key)) seenTags.set(key, tag);
+      });
+    tags = [...seenTags.values()];
     if (tags.some((tag) => tag.length > maxTagLength)) {
       return {
         success: false,

@@ -75,9 +75,6 @@ export const CalendarManager = (): ReactElement => {
           <h1 className="text-[26px] font-bold tracking-[-0.025em] text-foreground">
             Weekly Plan
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {formatWeekRangeLabel(weekStart)}
-          </p>
         </div>
         <div
           aria-label="Week navigation"
@@ -93,11 +90,12 @@ export const CalendarManager = (): ReactElement => {
             <ChevronLeft className="size-4" />
           </button>
           <button
+            aria-label="Jump to current week"
             className={buttonVariants({ variant: "outline", className: "h-auto border-0 px-3 py-1 text-xs" })}
             onClick={() => setWeekStart(getWeekStart(new Date()))}
             type="button"
           >
-            Today
+            {formatWeekRangeLabel(weekStart)}
           </button>
           <button
             aria-label="Next week"
