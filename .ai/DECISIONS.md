@@ -1,3 +1,71 @@
+## Recipe module (US-2/US-4): scope, cascade deferral, and UI adaptations
+
+Implemented recipe create (`POST /api/recipes`), list+search
+(`GET /api/recipes`), single fetch/edit/delete
+(`GET`/`PATCH`/`DELETE /api/recipes/[id]`), and the Recipe Library +
+Create/Edit Recipe screens. Several scope calls made during planning,
+recorded here:
+
+- **Recipe ingredient rows use exactly the unit set defined in
+  `.ai/Unit_Conversion_Algorithm_Spec.md`'s `RecipeIngredientEntry`**
+  (`tsp/tbsp/cup/fl_oz/ml/l/oz/lb/g/kg/whole`), not a UI-only unit list,
+  so the not-yet-built shopping-list module (US-7) can consume stored
+  recipe data without a migration. The Create/Edit Recipe form restricts
+  the unit dropdown to `whole` only for count-family ingredients and all
+  10 weight/volume units otherwise (cross-family entry, e.g. "2 tbsp
+  sugar" for a weight-family ingredient, is a deliberate feature of the
+  conversion spec, not a bug to block) — but the server only validates
+  that the unit is one of the 11 known values, not that it matches the
+  ingredient's family, since the spec explicitly allows the mismatch.
+- **Recipe delete does not warn about affected calendar days or cascade
+  calendar-assignment removal**, unlike what ARCHITECTURE.md §22
+  describes. The Calendar module doesn't exist yet (no `calendar-entry`
+  model, no calendar API on this branch), so there are no assignments
+  that could exist to check against — the client shows a generic "this
+  cannot be undone" confirmation instead. This mirrors the exact
+  reasoning already accepted for deferring ingredient delete (see below)
+  and should be upgraded to a real affected-day-count warning + cascade
+  once Calendar is built.
+- **No recipe image field or upload.** ARCHITECTURE.md's Recipe fields
+  (§7) are name/servings/ingredients only, and DESIGN.md's Create Recipe
+  form (§29.1–29.3) has no image input — only the Recipe Card mockup
+  (§22–27) shows an image, with an explicit empty-placeholder state
+  (§27) for when one is absent. Recipe cards always render that
+  placeholder; adding real image upload would need storage
+  infrastructure nothing in the spec calls for.
+- **No separate recipe description field.** The Recipe Card mockup shows
+  descriptive text under the title, but nothing in
+  `MEAL_PLANNER_REQUIREMENTS.md`/ARCHITECTURE.md defines a free-text
+  description on the Recipe model. Card descriptions are derived at
+  render time from the recipe's own ingredient names (first four, joined)
+  instead of adding an unmodeled field.
+- **Recipe Library sidebar filters are derived from tags actually in use
+  across the user's own recipes**, not DESIGN.md's mockup categories
+  (`Favorites`, `Quick Meals`, `Vegetarian`, `Meal Kits`) — those aren't
+  backed by any feature in the requirements (no favoriting exists
+  anywhere in scope), so hard-coding them would be decorative-only.
+  "All Recipes" plus one filter chip per distinct tag keeps the same
+  visual structure while staying grounded in real data.
+- **Recipes have no global/seeded scope, unlike ingredients** — every
+  recipe is private to its creator (ARCHITECTURE.md "User Data
+  Isolation" / §18 Data Ownership). Consequently `GET`/`PATCH`/
+  `DELETE /api/recipes/[id]` return **404, not 403**, for a recipe that
+  exists but belongs to another user — existence itself must stay
+  private, unlike ingredients (where a global/other-user record is at
+  least visible via search, so 403 doesn't leak anything new).
+- **Duplicate ingredient rows within one recipe are rejected client-side**
+  (and via server validation) rather than silently merged — a recipe
+  referencing the same canonical ingredient twice is more likely a UI
+  mistake than an intentional two-line recipe, and merging would need an
+  arbitrary rule (sum quantities? require matching units?) the spec
+  doesn't define.
+- **`features/recipes/components/recipe-form.tsx` imports
+  `IngredientCombobox` directly from its component file, not the
+  `features/ingredients` barrel** — see FIXES.md; the barrel also
+  re-exports `IngredientsScreen`, whose module graph pulls in `@/auth` →
+  `mongoose`, which broke `npm run build` when imported from this Client
+  Component.
+
 ## Custom ingredients feature (US-3): CRUD scope, duplicate handling, standalone page
 
 Implemented search/typeahead (`GET /api/ingredients`), create (`POST`), and
