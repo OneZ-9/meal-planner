@@ -73,7 +73,11 @@ side effect), then re-run `npx tsc --noEmit`.
 **Cause**: The `convert-units` npm package ships without a `.d.ts`.
 **Solution**: `npm install -D @types/convert-units` — a community
 type-defs package exists and covers it.
-**Related**: DECISIONS.md (same-family unit conversion).
+**Related**: DECISIONS.md (same-family unit conversion). **Update**: this
+never ended up applying — when Shopping List was actually built, the
+conversion ratios were hand-rolled instead of using `convert-units`, to
+match `Unit_Conversion_Algorithm_Spec.md`'s verified test cases exactly.
+See DECISIONS.md "Shopping List generation (US-7/US-8)".
 
 ---
 ### Server startup fails with `querySrv ENOTFOUND _mongodb._tcp.<cluster>.mongodb.net`

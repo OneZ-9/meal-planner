@@ -6,12 +6,59 @@
 
 ## Objective (right now)
 
-Recipe delete cascade (ARCHITECTURE.md §22) implemented on top of the
-completed Calendar module: deleting a recipe now removes its calendar
-assignments and warns the user with a real affected-day count first.
-Shopping List (US-7/US-8) is the one remaining unbuilt module.
+Shopping List (US-7/US-8) is implemented — all five MVP modules (Auth,
+Ingredients, Recipes, Calendar, Shopping List) now exist. Full
+density-based unit conversion and nearest-5g/5ml/kg-L rounding were built
+(the user reversed the earlier same-family-only/plain-decimal scope cut
+when asked directly before starting). Remaining work is Week 2 polish
+(ingredient delete, live browser verification, deployment) rather than
+new modules.
 
 ## Recent work
+
+- Implemented the Shopping List module (US-7/US-8), the last unbuilt
+  module. `lib/unitConversion.ts` implements the full four-step algorithm
+  from `.ai/Unit_Conversion_Algorithm_Spec.md` (same-family normalization,
+  family-match check, density-based cross-family conversion, caller
+  groups/sums/rounds) with hand-rolled ratios matching the spec's
+  "Verified test cases" exactly (sugar → 265g, olive oil → 130ml) rather
+  than the `convert-units` npm package the spec's aside suggested.
+  `lib/shoppingListGenerator.ts` groups by `ingredientId:resultUnit`,
+  sums, and rounds (nearest 5g/5ml, switching to kg/L above 1000) —
+  simplified from the spec's reference pseudocode by not also splitting
+  "unmerged" (missing-density) entries by their original entered unit,
+  since that split changes nothing for any case the spec actually verifies.
+  `lib/models/shoppingListItemState.ts` persists only checked/unchecked
+  state per `(userId, weekStart, itemKey)` — the list itself is always
+  regenerated live from Calendar + Recipe + Ingredient data, never stored,
+  same "no snapshot" philosophy used everywhere else in this app.
+  `GET/PATCH /api/shopping-list`: GET takes a `weekStart` query param
+  (same convention as Calendar) and merges in persisted checked state;
+  PATCH always takes `itemKeys: string[]` so one endpoint covers both a
+  single checkbox toggle and DESIGN.md's "Clear Checked"/"Check All" bulk
+  actions. `features/shopping-list/`: `ShoppingListScreen` (`/shopping-list`)
+  with Prev/Today/Next week navigation (added beyond DESIGN.md's static
+  mockup, since the list is genuinely week-scoped per US-9), optimistic
+  checkbox toggling via `useUpdateShoppingListChecks` (the only optimistic
+  mutation in this app — US-8 is specifically about responsiveness while
+  physically shopping), hand-rolled checkbox/progress-bar UI rather than a
+  new shadcn primitive (DESIGN.md itself calls for a "custom-styled"
+  checkbox, not a default library look), and a flat item list rather than
+  DESIGN.md's category-grouped layout (no aisle/category field exists on
+  `Ingredient`; aisle categorization is an explicit MoSCoW "Won't"). See
+  DECISIONS.md "Shopping List generation (US-7/US-8)" for the full
+  reasoning on every deviation above.
+- **Before starting, confirmed with the user whether to build the
+  original full algorithm (density-based cross-family conversion +
+  nearest-5/kg-L rounding) or the same-family-only/plain-decimal version
+  DECISIONS.md's "Features cut or simplified" list had previously cut for
+  time.** `ARCHITECTURE.md` §13-§17 and `Unit_Conversion_Algorithm_Spec.md`
+  had never been updated to reflect that cut, so the two core docs
+  actively disagreed; three other docs (DECISIONS.md, KNOWN_ISSUES.md,
+  `Meal_Planner_Feature_List_MoSCoW.md`) agreed the cut was real. The user
+  chose the full original algorithm, reversing that cut — both affected
+  cut-list items in DECISIONS.md are now annotated "Superseded" rather
+  than deleted, so the history isn't lost.
 
 - Implemented the recipe-delete cascade deferred since the Calendar module
   landed (ARCHITECTURE.md §22, KNOWN_ISSUES.md, DECISIONS.md "Calendar
@@ -230,24 +277,45 @@ None currently.
 
 ## Next action
 
+All five MVP modules (Auth, Ingredients, Recipes, Calendar, Shopping List)
+are now implemented. What's left is Week 2 polish and verification, not new
+modules:
+
 1. Set a strong `AUTH_SECRET` locally and in the deployment environment, then
    manually exercise registration/login against the intended Atlas database.
-2. Apply `auth()` checks and `session.user.id` ownership filters to every
-   user-owned API as shopping-list routes are implemented (Ingredients,
-   Recipes, and Calendar now all do this — shopping-list is the one
-   remaining module).
-3. Shopping List (US-7/US-8) is the natural next target, and now the only
-   unbuilt module: reads the Calendar module's assignments + Recipe
-   ingredients, normalizes/merges quantities per
-   `.ai/Unit_Conversion_Algorithm_Spec.md`, and needs its own checked-state
-   persistence (US-8). No shopping-list model or API exists yet.
-4. Not manually exercised in a live browser this session (no browser
-   automation tool available, same limitation noted throughout this file) —
-   worth a manual click-through of the recipe delete flow (both with and
-   without calendar assignments) before considering it fully done.
+2. Manual click-through in a live browser (no browser automation tool
+   available in this environment, same limitation noted throughout this
+   file) — this has never been done for: the recipe delete cascade (both
+   with and without calendar assignments), and the entire Shopping List
+   screen (week nav, checkbox toggling incl. optimistic-update rollback on
+   a failed request, "Clear Checked"/"Check All", the empty-state message
+   for a week with no assignments, and a real cross-family/no-density
+   ingredient producing an "(not merged with other units)" line).
+3. Ingredient delete is still not implemented (KNOWN_ISSUES.md) — now
+   buildable against a reference check on both `RecipeModel` and (new)
+   whether the ingredient appears in any current shopping-list generation,
+   though the latter is derived data and doesn't need its own check beyond
+   the existing recipe-reference one.
+4. Vercel project connection / deployment (see DEPLOYMENT.md) — not done
+   yet.
 
 ## Validation state
 
+- Shopping List module: `npx tsc --noEmit`, `npm run lint`, `npm run
+  build`, and `npx vitest run` (17 files, 130 tests) all pass. New
+  coverage: `lib/unitConversion.test.ts` (reproduces the spec's verified
+  sugar/olive-oil test cases plus count passthrough and the missing-
+  density "unmerged" case), `lib/shoppingListGenerator.test.ts` (merging
+  across recipes/occurrences, unmerged lines, dropped-ingredient
+  tolerance, name sort), `lib/shoppingListValidation.test.ts`, and
+  `app/api/shopping-list/route.test.ts` (GET generation + checked-state
+  merge, empty-week short-circuit, PATCH bulk upsert). A signed-out HTTP
+  request to `/shopping-list` was smoke-tested (307 → `/login`, same
+  pattern as prior sessions' `/dashboard` check) via a locally-started
+  `npm run dev`. Not otherwise manually exercised in a live browser this
+  session (no browser automation tool available, same limitation noted
+  throughout this file) — see "Next action" above for what that
+  click-through still needs to cover.
 - Recipe delete cascade: `npx tsc --noEmit`, `npm run lint`, `npm run
   build`, and `npx vitest run` (13 files, 97 tests) all pass — the first
   time this repo's full suite has actually executed rather than being

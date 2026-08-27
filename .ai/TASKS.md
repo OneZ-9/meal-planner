@@ -87,13 +87,48 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       caught and fixed two unrelated pre-existing bugs (incomplete recipe
       model mocks, case-sensitive tag dedup) — see FIXES.md/DECISIONS.md.
 
+- [x] Shopping List module (US-7 generate, US-8 checklist): full
+      density-based unit conversion (reversing the earlier same-family-only
+      cut — see DECISIONS.md "Shopping List generation (US-7/US-8)").
+      `lib/unitConversion.ts` (`normalizeRecipeQuantity`,
+      `formatDisplayQuantity` — the four-step algorithm from
+      `.ai/Unit_Conversion_Algorithm_Spec.md`, hand-rolled ratios matching
+      its verified test cases exactly), `lib/shoppingListGenerator.ts`
+      (group by `ingredientId:resultUnit`, sum, round), `lib/models/
+      shoppingListItemState.ts` (checked-state persistence only — the list
+      itself is always regenerated live, never stored), `lib/
+      shoppingListValidation.ts`, `GET/PATCH /api/shopping-list`
+      (`weekStart` query param; PATCH always takes an `itemKeys: string[]`
+      so one endpoint covers a single checkbox and the "Clear Checked"/
+      "Check All" bulk actions). `features/shopping-list/`:
+      `ShoppingListScreen` (`/shopping-list`, DESIGN.md section 30) with
+      Prev/Today/Next week navigation (added beyond DESIGN.md's static
+      mockup, matching Calendar — the list is genuinely week-scoped),
+      optimistic checkbox toggling (`useUpdateShoppingListChecks` — the
+      only optimistic mutation in this app, since US-8 is specifically
+      about responsiveness while shopping), hand-rolled checkbox/progress-
+      bar UI (no new shadcn primitive), and a flat item list instead of
+      DESIGN.md's category-grouped layout (no aisle/category field exists;
+      see KNOWN_ISSUES.md). Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, and `npx vitest run` (130/130 tests,
+      17 files — new: `lib/unitConversion.test.ts`,
+      `lib/shoppingListGenerator.test.ts`,
+      `lib/shoppingListValidation.test.ts`,
+      `app/api/shopping-list/route.test.ts`). A signed-out HTTP request to
+      `/shopping-list` was smoke-tested (307 → `/login`); not otherwise
+      manually exercised in a live browser (no browser automation tool
+      available, same limitation noted throughout `.ai/CURRENT.md`).
+
+This completes all five MVP modules (Auth, Ingredients, Recipes, Calendar,
+Shopping List).
+
 ## Week 2 — not started
 
 | Dev | User Story                                           | Priority      |
 | --- | ---------------------------------------------------- | ------------- |
-| A   | US-7 generate shopping list (same-family conversion) | Must          |
+| A   | US-7 generate shopping list (same-family conversion) | Done — see above (built with full conversion, not same-family-only) |
 | B   | US-4 recipe edit/delete, ingredient creation flow    | Must / Should |
-| C   | US-8 checklist, empty states, polish                 | Must / Should |
+| C   | US-8 checklist, empty states, polish                 | Done — see above |
 
 ## Also pending (not story-specific)
 
@@ -116,10 +151,11 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       search/create/update → ownership + duplicate checks → paged
       through all 148 seeded ingredients, then cleaned up).
 - [ ] Vercel project connected (see DEPLOYMENT.md).
-- [ ] Shopping List page UI (`/shopping-list`) — not built yet; no
-      shopping-list model or API exists either. Recipes (`/recipes`,
-      `/recipes/new`, `/recipes/[id]/edit`) and Calendar (`/calendar`) are
-      now built, alongside Login, Dashboard, and Ingredients.
+- [x] Shopping List page UI (`/shopping-list`) — built, see the Shopping
+      List module entry above. All six planned pages now exist: Login,
+      Dashboard, Ingredients, Recipes (`/recipes`, `/recipes/new`,
+      `/recipes/[id]/edit`), Calendar (`/calendar`), Shopping List
+      (`/shopping-list`).
 
 ## Explicitly deferred (Future Features, not MVP)
 
