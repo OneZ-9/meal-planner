@@ -16,6 +16,14 @@ new modules.
 
 ## Recent work
 
+- Changed the Calendar and Shopping List week-nav control on request: the
+  middle pill now shows the current week's date range (e.g. "Oct 23 – Oct
+  29, 2023") instead of a static "Today" label, and the separate
+  date-range subtitle under each page title was dropped as redundant once
+  the pill became dynamic. Click behavior unchanged — the pill still jumps
+  to the current week. See DECISIONS.md "Week navigation pill shows the
+  date range, not a static 'Today' label"; DESIGN.md sections 28/30
+  updated to match.
 - Implemented the Shopping List module (US-7/US-8), the last unbuilt
   module. `lib/unitConversion.ts` implements the full four-step algorithm
   from `.ai/Unit_Conversion_Algorithm_Spec.md` (same-family normalization,

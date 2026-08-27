@@ -1,3 +1,20 @@
+## Week navigation pill shows the date range, not a static "Today" label
+
+Both Calendar (`calendar-manager.tsx`) and Shopping List
+(`shopping-list-manager.tsx`) had a `‹ Today ›` week-nav cluster plus a
+separate "Oct 23 – Oct 29, 2023"-style subtitle under the page title
+(DESIGN.md sections 28 and 30, as originally documented). On request, the
+middle pill now shows the current week's date range instead of the literal
+word "Today", and the separate subtitle was dropped — showing the same
+range in two places in the same header read as redundant once the pill
+became dynamic. The pill's click behavior is unchanged (jumps to the
+current week); only its label changed, so `aria-label="Jump to current
+week"` was added since the visible text no longer states what the button
+does. `formatWeekRangeLabel`/`getWeekStart` (`lib/dateWeek.ts`) are
+unchanged — this was a display-only change in both manager components.
+DESIGN.md sections 28 and 30 were updated to match, with a note explaining
+the deviation from the original reference mockups.
+
 ## Shopping List generation (US-7/US-8): scope reversal, algorithm, and UI deviations
 
 Implemented `GET/PATCH /api/shopping-list` and the `/shopping-list` screen —
