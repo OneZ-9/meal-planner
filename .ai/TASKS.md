@@ -21,7 +21,7 @@ refer to that plan.
 | --- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A   | US-1: signup, login, session, data isolation                       | Implemented; live Atlas browser smoke test pending. Ownership enforcement is ready via `session.user.id`; user-owned feature APIs do not exist yet. |
 | B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded; search/typeahead API, create, and update (US-3) implemented and tested. Ingredient delete deferred (KNOWN_ISSUES.md). Recipe module (US-2/US-4) implemented — see below. |
-| C   | US-5 assign to day/slot, US-9 navigate weeks                       | Not started — model exists, no UI or working API yet                                                                                                |
+| C   | US-5 assign to day/slot, US-9 navigate weeks                       | Implemented — see below.                                                                                                                             |
 
 **Week 1 integration checkpoint** (per spec Section 6): all three modules
 demoable together, even shallowly, before Week 2 begins. Not yet reached.
@@ -44,6 +44,33 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       written but unverified by execution — `npx vitest run` fails to
       start on this machine, a pre-existing environment issue (see
       FIXES.md), not caused by this change.
+
+- [x] Calendar module (US-5 assign to day/slot, US-9 navigate weeks):
+      `lib/models/calendarEntry.ts` (`CalendarEntryModel`, one unique
+      `(userId, date, mealSlot)` per assignment), `lib/mealSlot.ts` (the
+      `MealSlot`/`MEAL_SLOTS` source of truth, kept model-free so client
+      components can import it without pulling in Mongoose — see FIXES.md),
+      `lib/dateWeek.ts` (Mon-Sun week math via `date-fns`),
+      `lib/calendarValidation.ts`, `lib/calendarDto.ts`,
+      `GET/POST /api/calendar` (week read + assign-or-replace upsert),
+      `DELETE /api/calendar/[id]` (remove one assignment). `features/calendar/`:
+      `CalendarScreen` (`/calendar`, Weekly Plan grid) with week
+      Prev/Today/Next navigation, an assign-recipe dialog (searches the
+      user's own recipes via the existing recipe search API), and a meal
+      chip with a Change/Remove kebab menu, plus a read-only
+      `RecipeDetailsDialog` (name, servings, prep time, tags, ingredients,
+      instructions) opened by clicking the chip itself — backed by a
+      calendar-local `useRecipeDetails` hook rather than
+      `features/recipes/hooks/useRecipe`, see DECISIONS.md. Assigning to an
+      occupied slot
+      replaces the recipe via the same upsert (no separate "replace" code
+      path). Recipe-delete's affected-day warning/cascade (ARCHITECTURE.md
+      §22) was intentionally left unimplemented this pass — see
+      KNOWN_ISSUES.md. Verified with `npx tsc --noEmit`, `npm run lint`,
+      `npm run build`; `lib/dateWeek.test.ts`, `lib/calendarValidation.test.ts`,
+      `app/api/calendar/route.test.ts`, `app/api/calendar/[id]/route.test.ts`
+      written but unverified by execution — `npx vitest run` still fails to
+      start on this machine (pre-existing environment issue, see FIXES.md).
 
 ## Week 2 — not started
 
@@ -74,11 +101,10 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       search/create/update → ownership + duplicate checks → paged
       through all 148 seeded ingredients, then cleaned up).
 - [ ] Vercel project connected (see DEPLOYMENT.md).
-- [ ] Calendar page UI (`/calendar`), Shopping List page UI
-      (`/shopping-list`) — not built yet; no `calendar-entry` model or API
-      exists either. Recipes (`/recipes`, `/recipes/new`,
-      `/recipes/[id]/edit`) is now built, alongside Login, Dashboard, and
-      Ingredients.
+- [ ] Shopping List page UI (`/shopping-list`) — not built yet; no
+      shopping-list model or API exists either. Recipes (`/recipes`,
+      `/recipes/new`, `/recipes/[id]/edit`) and Calendar (`/calendar`) are
+      now built, alongside Login, Dashboard, and Ingredients.
 
 ## Explicitly deferred (Future Features, not MVP)
 

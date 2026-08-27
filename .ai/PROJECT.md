@@ -38,6 +38,7 @@ Two specific failure modes drive this:
 | Hosting           | Vercel                                                     |
 | Ingredient search | MongoDB text index                                         |
 | Unit conversion   | `convert-units` (npm) — same-family only, see DECISIONS.md |
+| Calendar date math | `date-fns` (npm) — week start/navigation, see DECISIONS.md |
 
 ## Stack notes
 

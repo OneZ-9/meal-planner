@@ -1,3 +1,87 @@
+## Calendar module (US-5/US-9): scope, date modeling, and library choice
+
+Implemented weekly navigation and recipe assignment: `GET/POST /api/calendar`
+(read a week's assignments, assign-or-replace a recipe into a slot),
+`DELETE /api/calendar/[id]` (remove one assignment), and the Weekly Plan
+screen (`/calendar`). Several scope calls made during planning, recorded
+here:
+
+- **`date-fns` was added as a new dependency** for week-boundary math
+  (`startOfWeek`, `addDays`, `addWeeks`, `format`). No date library existed
+  in `package.json` before this — `date-fns` was chosen over `dayjs`/
+  `luxon`/hand-rolled math for being the most widely used, tree-shakeable,
+  timezone-simple option for this exact use case (pure calendar-day
+  arithmetic, no timezone-aware parsing needed). It's used only for date
+  math, not as a UI calendar widget — DESIGN.md's grid (Section 28) has an
+  exact custom layout that a packaged calendar-UI library (e.g.
+  `react-big-calendar`, FullCalendar) would fight rather than help with, so
+  the grid itself is hand-built with Tailwind like every other screen.
+- **A calendar day is stored as a plain `"YYYY-MM-DD"` string
+  (`lib/dateWeek.ts`'s `toDateKey`/`fromDateKey`), never a `Date`/timestamp.**
+  A calendar day has no time-of-day or timezone component; parsing a key
+  back to a `Date` always constructs it in local time (`new Date(y, m, d)`),
+  never via `new Date(string)` (which parses as UTC and can shift the date
+  by a day depending on the reader's timezone). This sidesteps an entire
+  class of off-by-one-day bugs at the cost of not being able to do native
+  Mongo date-range queries — acceptable at this dataset size per
+  ARCHITECTURE.md §36.
+- **Weeks are Monday-Sunday** (`WEEK_STARTS_ON = 1` in `lib/dateWeek.ts`),
+  matching DESIGN.md Section 28's `Mon...Sun` grid exactly. Every week
+  boundary (server validation, client navigation, "Today" button) computes
+  through this same constant so a week is never computed two different ways.
+- **Assigning to an occupied slot replaces the recipe via upsert, not a
+  separate "replace" code path.** `POST /api/calendar` always
+  `findOneAndUpdate({userId, date, mealSlot}, ..., {upsert: true})` — ARCHITECTURE.md
+  section 9 defines replacement as the expected behavior for an occupied
+  slot, so there's no meaningful distinction between "first assignment" and
+  "replacement" for the API or the assign-dialog UI to special-case.
+- **Empty calendar cells render with no visible icon/affordance**, even
+  though they're clickable — DESIGN.md Section 28 explicitly says "Do not
+  render a placeholder icon or 'add meal' affordance." The cell is a
+  full-size button with only a subtle hover/focus background, satisfying
+  both the design constraint (blank by default) and Section 35's
+  requirement that every interactive element have a hover/focus state.
+- **The meal chip's kebab menu ("Change"/"Remove") is a small hand-rolled
+  popover** (open state + click-outside-to-close), not a shadcn/base-ui
+  dropdown-menu primitive — no `dropdown-menu.tsx` exists in
+  `components/ui/` yet, and adding one was judged out of scope for a
+  two-action menu. If a second in-app menu of this kind is needed, add the
+  shadcn primitive instead of a third hand-rolled copy.
+- **Removing a calendar assignment has no confirmation dialog** — unlike
+  recipe/ingredient deletion, ARCHITECTURE.md doesn't call for one here, and
+  the action is low-stakes (re-assigning a slot is one click).
+- **Recipe-delete's affected-calendar-day warning + cascade
+  (ARCHITECTURE.md §22) was implemented in a first pass, then explicitly
+  reverted at the user's request** to keep this session's change scoped to
+  the Calendar module only, without touching the Recipe module's delete
+  flow. As a result, deleting a recipe that's still assigned to the
+  calendar currently leaves those assignments in the database pointing at a
+  now-deleted recipe (`GET /api/calendar` silently drops any entry whose
+  `recipeId` no longer resolves, so it just disappears from the grid rather
+  than erroring) — tracked in KNOWN_ISSUES.md as a gap for whoever next
+  touches recipe delete.
+- **Clicking a meal chip's name/prep-time area opens a read-only recipe
+  details dialog** (`RecipeDetailsDialog`), separate from the kebab menu's
+  Change/Remove actions. Added a calendar-local
+  `features/calendar/hooks/useRecipeDetails.ts` rather than reusing
+  `features/recipes/hooks/useRecipe` — that hook has no `enabled` guard,
+  and the details dialog is always mounted (only its `open` prop toggles),
+  so an unguarded query would fire a wasted `/api/recipes/` fetch with an
+  empty id on every calendar page load. The new hook calls the same
+  `fetchRecipe` from `lib/api/recipes` and shares its `["recipes",
+  "detail", id]` query-key prefix, so the cache still stays in sync with
+  the Recipes page.
+- **The Calendar UI reuses the existing recipe search API directly**
+  (`useRecipes` imported from its hook file, not the `features/recipes`
+  barrel) for the assign-recipe dialog's picker, rather than adding a
+  calendar-specific recipe list endpoint — same reasoning as ARCHITECTURE.md's
+  "Search boundary" for ingredients (don't reimplement search in a
+  different module). Imported directly from the hook file rather than
+  through `features/recipes/index.ts` because that barrel also exports
+  `RecipesScreen` (a Server Component whose module graph pulls in `@/auth`
+  → `mongoose`), which would break the calendar page's client bundle — see
+  FIXES.md.
+
 ## Recipe module (US-2/US-4): scope, cascade deferral, and UI adaptations
 
 Implemented recipe create (`POST /api/recipes`), list+search

@@ -122,3 +122,28 @@ else that transitively imports `@/auth`. See
 vs. `ingredients-manager.tsx` (client content) for the pattern.
 **Related**: PROJECT.md (state management), DECISIONS.md (custom
 ingredients feature).
+
+---
+### `npm run build` fails with "Module not found: Can't resolve 'tls'" — variant: importing a plain constant from a model file
+**Symptom**: Same `tls`/mongoose error as above, but the import trace ends
+at a `lib/models/<x>.ts` file rather than `@/auth` — e.g.
+`./lib/models/calendarEntry.ts [Client Component Browser]` imported from a
+`"use client"` component that only wanted a small exported constant/type
+(e.g. `MEAL_SLOTS`), not the Mongoose model itself.
+**Cause**: `lib/models/*.ts` files start with
+`import { Schema, model, models, ... } from "mongoose";` — importing
+*anything* exported at runtime from that file (not `import type`) evaluates
+the whole module, including the Mongoose import, in whatever bundle does
+the importing. A client component doing `import { MEAL_SLOTS } from
+"@/lib/models/calendarEntry"` pulls Mongoose into the browser bundle even
+though it never touches the schema/model export.
+**Solution**: Don't export plain constants/types that client code needs
+directly from a `lib/models/*.ts` file. Put them in a small model-free
+module instead (e.g. `lib/mealSlot.ts`) and have the model file import
+*from* that module for its schema `enum`, re-exporting it for convenience
+if server code wants a single import path. Client components import the
+model-free module. A `import type { X } from "@/lib/models/..."` (type-only)
+is always safe regardless, since TypeScript elides it entirely — this only
+bites *value* imports (constants, enums-as-objects, functions).
+**Related**: The `@/auth` variant above; DECISIONS.md "Calendar module
+(US-5/US-9)".
