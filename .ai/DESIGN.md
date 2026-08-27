@@ -1010,13 +1010,12 @@ Reference: `docs/design-reference/calendar.png`. Uses the Application Shell (Sec
 ## Header
 
 ```text
-Weekly Plan                                  ‹  Today  ›
-Oct 23 – Oct 29, 2023
+Weekly Plan                          ‹  Oct 23 – Oct 29, 2023  ›
 ```
 
 - Title: approximately 26px, bold, dark navy — matches the Dashboard/Recipe Library page-title treatment.
-- Date range subtitle: secondary text, directly below the title, small.
-- Right-aligned week navigation cluster: `‹` (prev week, icon button), `Today` (pill/button, white surface with border), `›` (next week, icon button). All three are compact, white background, thin border, rounded, grouped tightly together.
+- Right-aligned week navigation cluster: `‹` (prev week, icon button), the current week's date range (pill/button, white surface with border — clicking it jumps back to the current week, same action a literal "Today" label would have triggered), `›` (next week, icon button). All three are compact, white background, thin border, rounded, grouped tightly together.
+- **Deviation from the original reference**: the reference shows a static "Today" label in the middle pill plus a separate date-range subtitle under the title. Implemented instead with the date range itself inside the pill (updating on every Prev/Next click) and no separate subtitle, since showing the same range in two places at once read as redundant — see DECISIONS.md "Week navigation pill shows the date range, not a static 'Today' label".
 
 ## Weekly grid
 
@@ -1141,12 +1140,11 @@ Reference: `docs/design-reference/shopping-list.png`. Uses the Application Shell
 ## Header
 
 ```text
-This Week's List                    [Clear Checked] [Check All]
-March 11 - March 17
+This Week's List      ‹ March 11 - March 17 ›   [Clear Checked] [Check All]
 ```
 
 - Title: approximately 26px, bold, dark navy.
-- Date range subtitle: secondary text, directly below the title.
+- Week navigation cluster (added beyond the static reference, since the list is genuinely week-scoped per US-9): same `‹ [date range pill] ›` pattern as the Calendar screen (Section 28) — no separate date-range subtitle under the title; see that section's "Deviation from the original reference" note and DECISIONS.md "Week navigation pill shows the date range, not a static 'Today' label".
 - Top-right button pair: `Clear Checked` (secondary/outline, white background) and `Check All` (primary — filled dark, uses `--color-primary` treatment). Both compact height, `--radius-md`.
 
 ## Layout

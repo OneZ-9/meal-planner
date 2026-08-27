@@ -1,3 +1,297 @@
+## Week navigation pill shows the date range, not a static "Today" label
+
+Both Calendar (`calendar-manager.tsx`) and Shopping List
+(`shopping-list-manager.tsx`) had a `‹ Today ›` week-nav cluster plus a
+separate "Oct 23 – Oct 29, 2023"-style subtitle under the page title
+(DESIGN.md sections 28 and 30, as originally documented). On request, the
+middle pill now shows the current week's date range instead of the literal
+word "Today", and the separate subtitle was dropped — showing the same
+range in two places in the same header read as redundant once the pill
+became dynamic. The pill's click behavior is unchanged (jumps to the
+current week); only its label changed, so `aria-label="Jump to current
+week"` was added since the visible text no longer states what the button
+does. `formatWeekRangeLabel`/`getWeekStart` (`lib/dateWeek.ts`) are
+unchanged — this was a display-only change in both manager components.
+DESIGN.md sections 28 and 30 were updated to match, with a note explaining
+the deviation from the original reference mockups.
+
+## Shopping List generation (US-7/US-8): scope reversal, algorithm, and UI deviations
+
+Implemented `GET/PATCH /api/shopping-list` and the `/shopping-list` screen —
+the last of the five modules. Several scope calls made during this session,
+recorded here:
+
+- **Cross-family density conversion and nearest-5/kg-L rounding are back
+  in scope, reversing the "Features cut or simplified" list below (items 1
+  and 5).** Those items cut them for time under the original 2-week team
+  plan; when asked directly before starting this module, the user chose to
+  build the full original algorithm instead (`ARCHITECTURE.md` §13-§17 and
+  `Unit_Conversion_Algorithm_Spec.md` were therefore never stale — they're
+  the ones actually implemented). Both list items below are annotated as
+  superseded rather than deleted, so the history of what was cut and later
+  restored isn't lost.
+- **Hand-rolled the volume/weight conversion ratios
+  (`lib/unitConversion.ts`) instead of the `convert-units` npm package**,
+  despite `Unit_Conversion_Algorithm_Spec.md`'s aside recommending it. The
+  spec's "Verified test cases" (sugar → 265g, olive oil → 130ml) were
+  computed with its own hand-rolled `VOLUME_TO_ML`/`WEIGHT_TO_G` constants;
+  matching those exact figures byte-for-byte mattered more than the
+  library's unit-name-variant handling, which buys nothing here anyway —
+  this app's units are a small fixed `RecipeUnit` enum, never free-text.
+  Avoids an extra dependency too. See FIXES.md's preemptive
+  `@types/convert-units` entry — it never ended up applying.
+- **Simplified the "unmerged" grouping key.** The spec's reference
+  pseudocode appends the original entered unit to a cross-family/no-density
+  entry's group key (`ingredient:resultUnit:originalUnit`), so e.g. a
+  tbsp-sourced and a cup-sourced unmerged entry for the same ingredient
+  wouldn't merge with each other even though both already normalized to the
+  same base unit (ml) via the same exact fixed ratio. That extra split adds
+  no value — steps 1's same-family conversion is never in question, only
+  the ml→g density step is being skipped — so the implementation groups
+  purely by `ingredientId:resultUnit` and carries `unmerged` as a boolean
+  flag on the line instead. Produces identical output for every case in
+  the spec's verified test cases.
+- **Checklist state (US-8) persists separately from the list itself** —
+  a new `ShoppingListItemStateModel` keyed by `(userId, weekStart,
+  itemKey)`, where `itemKey` is the same `${ingredientId}:${resultUnit}`
+  string the generator groups by. The shopping list itself is never
+  stored; it's regenerated on every `GET`, same "live reference, no
+  snapshot" philosophy as Calendar → Recipe (ARCHITECTURE.md "Recipe Edit
+  Data Flow") — only the checked bits need to survive refresh/logout
+  (§17 "Checklist Module"). A checked-state row naturally goes
+  unreferenced (not an error) if the underlying recipes/assignments change
+  enough to remove that line — same dangling-reference tolerance already
+  accepted elsewhere (KNOWN_ISSUES.md).
+- **One PATCH endpoint, always array-shaped (`itemKeys: string[]`), covers
+  both a single checkbox toggle and DESIGN.md's "Clear Checked"/"Check
+  All" bulk actions** — a 1-element array for the former, all
+  checked/unchecked keys for the latter. Simpler than two endpoints for
+  what's structurally the same write.
+- **Checkbox toggling is optimistic** (`useUpdateShoppingListChecks`),
+  unlike every other mutation hook in this app (which just
+  invalidate-on-success). US-8's entire point is checking items off while
+  physically shopping — waiting on a round trip before the checkbox
+  visually responds would be a bad experience for exactly the interaction
+  this feature exists for. Rolls back to the pre-mutation cache snapshot
+  on failure.
+- **DESIGN.md's category-grouped grocery list (Produce, Dairy &
+  Refrigerated, ...) was flattened to a single ungrouped list.** No
+  `category`/aisle field exists on `Ingredient`, and "Ingredient
+  categorization by aisle" is explicitly a MoSCoW "Won't" — same kind of
+  deviation already made for the Recipe Library's sidebar filters (derived
+  from real tag data instead of DESIGN.md's mockup categories).
+- **Skipped DESIGN.md's "Inspiration card"** (community-recipe promo
+  banner) — decorative, not backed by any feature in
+  `MEAL_PLANNER_REQUIREMENTS.md`, same reasoning as every other
+  DESIGN.md-mockup-but-not-a-real-feature omission in this project.
+- **Checkbox and progress-bar UI are hand-rolled**, not a new shadcn/
+  `@base-ui/react` primitive. DESIGN.md's own spec calls for a
+  "custom-styled square" checkbox rather than a default library look, and
+  the progress bar is one styled `<div>` — pulling in a new primitive
+  (and a new dependency) would need immediate full restyling anyway, so
+  hand-rolling was strictly less work.
+- **Week navigation (Prev/Today/Next) was added to the Shopping List
+  header**, matching the Calendar screen's control, even though
+  DESIGN.md's static mockup only shows a fixed date-range subtitle — US-7's
+  "the selected week" language and US-9 ("every week's list is
+  independent") both require the user to actually be able to select a
+  different week.
+
+## Recipe delete cascade (ARCHITECTURE.md §22)
+
+Implemented the deferral called out in KNOWN_ISSUES.md/CURRENT.md since the
+Calendar module landed: `DELETE /api/recipes/[id]` now removes any calendar
+assignments referencing the deleted recipe, and the client warns with a real
+affected-day count before confirming.
+
+- **New endpoint `GET /api/recipes/[id]/calendar-usage`** returns `{ count
+  }` rather than folding the count into the existing `GET /api/recipes/[id]`
+  response. The edit page also calls that existing GET and has no use for
+  the count, so a separate endpoint keeps that read cheap and makes the
+  delete-warning's data dependency explicit. Same 404-not-403 ownership
+  check as every other recipe route.
+- **Sequence is delete-recipe-then-deleteMany-assignments, no Mongo
+  transaction** — matches the "blunt cascade" call already accepted in this
+  file's cut-list section (item 4) for the same reason: transactions are
+  disproportionate effort for a Should-have, and the failure mode (a
+  dangling `recipeId` reference if the process dies mid-cascade) already
+  fails safe today, since `toCalendarEntryDTO` filters out any calendar
+  entry whose recipe lookup misses.
+- **The confirmation dialog always renders** (even when the affected count
+  is 0 or still loading) rather than gating on the count query — it shows
+  the existing generic "cannot be undone" copy until/unless the count comes
+  back positive, then swaps in the day-count warning. This avoids adding a
+  loading state to the delete button itself and matches how the dialog
+  already behaves before this change.
+- **"Update Affected Lists" (the diagram's last step) is a no-op for now**
+  — the Shopping List module doesn't exist yet. Once it does, it will read
+  calendar assignments live (same "no snapshot" boundary as recipes), so a
+  cascaded-away assignment simply won't appear in the next generation — no
+  extra propagation step needed here, matching how recipe edits already
+  propagate (ARCHITECTURE.md "Recipe Edit Data Flow").
+- Discovered and fixed two unrelated pre-existing bugs while verifying this
+  change, once `npx vitest run` started working again on this machine (see
+  FIXES.md): an incomplete `vi.mock("@/lib/models/recipe", ...)` in two
+  recipe route test files (missing the real `RECIPE_UNITS` export, crashing
+  every POST/PATCH test that reached validation), and a case-sensitive tag
+  dedup in `lib/recipeValidation.ts` (`new Set` instead of a
+  lowercase-keyed dedup) that its own test caught immediately once it could
+  actually run. Both were fixed rather than left red, since they were
+  one-line, behavior-restoring fixes with an existing test already stating
+  the intended behavior — not new scope.
+
+## Calendar module (US-5/US-9): scope, date modeling, and library choice
+
+Implemented weekly navigation and recipe assignment: `GET/POST /api/calendar`
+(read a week's assignments, assign-or-replace a recipe into a slot),
+`DELETE /api/calendar/[id]` (remove one assignment), and the Weekly Plan
+screen (`/calendar`). Several scope calls made during planning, recorded
+here:
+
+- **`date-fns` was added as a new dependency** for week-boundary math
+  (`startOfWeek`, `addDays`, `addWeeks`, `format`). No date library existed
+  in `package.json` before this — `date-fns` was chosen over `dayjs`/
+  `luxon`/hand-rolled math for being the most widely used, tree-shakeable,
+  timezone-simple option for this exact use case (pure calendar-day
+  arithmetic, no timezone-aware parsing needed). It's used only for date
+  math, not as a UI calendar widget — DESIGN.md's grid (Section 28) has an
+  exact custom layout that a packaged calendar-UI library (e.g.
+  `react-big-calendar`, FullCalendar) would fight rather than help with, so
+  the grid itself is hand-built with Tailwind like every other screen.
+- **A calendar day is stored as a plain `"YYYY-MM-DD"` string
+  (`lib/dateWeek.ts`'s `toDateKey`/`fromDateKey`), never a `Date`/timestamp.**
+  A calendar day has no time-of-day or timezone component; parsing a key
+  back to a `Date` always constructs it in local time (`new Date(y, m, d)`),
+  never via `new Date(string)` (which parses as UTC and can shift the date
+  by a day depending on the reader's timezone). This sidesteps an entire
+  class of off-by-one-day bugs at the cost of not being able to do native
+  Mongo date-range queries — acceptable at this dataset size per
+  ARCHITECTURE.md §36.
+- **Weeks are Monday-Sunday** (`WEEK_STARTS_ON = 1` in `lib/dateWeek.ts`),
+  matching DESIGN.md Section 28's `Mon...Sun` grid exactly. Every week
+  boundary (server validation, client navigation, "Today" button) computes
+  through this same constant so a week is never computed two different ways.
+- **Assigning to an occupied slot replaces the recipe via upsert, not a
+  separate "replace" code path.** `POST /api/calendar` always
+  `findOneAndUpdate({userId, date, mealSlot}, ..., {upsert: true})` — ARCHITECTURE.md
+  section 9 defines replacement as the expected behavior for an occupied
+  slot, so there's no meaningful distinction between "first assignment" and
+  "replacement" for the API or the assign-dialog UI to special-case.
+- **Empty calendar cells render with no visible icon/affordance**, even
+  though they're clickable — DESIGN.md Section 28 explicitly says "Do not
+  render a placeholder icon or 'add meal' affordance." The cell is a
+  full-size button with only a subtle hover/focus background, satisfying
+  both the design constraint (blank by default) and Section 35's
+  requirement that every interactive element have a hover/focus state.
+- **The meal chip's kebab menu ("Change"/"Remove") is a small hand-rolled
+  popover** (open state + click-outside-to-close), not a shadcn/base-ui
+  dropdown-menu primitive — no `dropdown-menu.tsx` exists in
+  `components/ui/` yet, and adding one was judged out of scope for a
+  two-action menu. If a second in-app menu of this kind is needed, add the
+  shadcn primitive instead of a third hand-rolled copy.
+- **Removing a calendar assignment has no confirmation dialog** — unlike
+  recipe/ingredient deletion, ARCHITECTURE.md doesn't call for one here, and
+  the action is low-stakes (re-assigning a slot is one click).
+- **Recipe-delete's affected-calendar-day warning + cascade
+  (ARCHITECTURE.md §22) was implemented in a first pass, then explicitly
+  reverted at the user's request** to keep this session's change scoped to
+  the Calendar module only, without touching the Recipe module's delete
+  flow. As a result, deleting a recipe that's still assigned to the
+  calendar currently leaves those assignments in the database pointing at a
+  now-deleted recipe (`GET /api/calendar` silently drops any entry whose
+  `recipeId` no longer resolves, so it just disappears from the grid rather
+  than erroring) — tracked in KNOWN_ISSUES.md as a gap for whoever next
+  touches recipe delete.
+- **Clicking a meal chip's name/prep-time area opens a read-only recipe
+  details dialog** (`RecipeDetailsDialog`), separate from the kebab menu's
+  Change/Remove actions. Added a calendar-local
+  `features/calendar/hooks/useRecipeDetails.ts` rather than reusing
+  `features/recipes/hooks/useRecipe` — that hook has no `enabled` guard,
+  and the details dialog is always mounted (only its `open` prop toggles),
+  so an unguarded query would fire a wasted `/api/recipes/` fetch with an
+  empty id on every calendar page load. The new hook calls the same
+  `fetchRecipe` from `lib/api/recipes` and shares its `["recipes",
+  "detail", id]` query-key prefix, so the cache still stays in sync with
+  the Recipes page.
+- **The Calendar UI reuses the existing recipe search API directly**
+  (`useRecipes` imported from its hook file, not the `features/recipes`
+  barrel) for the assign-recipe dialog's picker, rather than adding a
+  calendar-specific recipe list endpoint — same reasoning as ARCHITECTURE.md's
+  "Search boundary" for ingredients (don't reimplement search in a
+  different module). Imported directly from the hook file rather than
+  through `features/recipes/index.ts` because that barrel also exports
+  `RecipesScreen` (a Server Component whose module graph pulls in `@/auth`
+  → `mongoose`), which would break the calendar page's client bundle — see
+  FIXES.md.
+
+## Recipe module (US-2/US-4): scope, cascade deferral, and UI adaptations
+
+Implemented recipe create (`POST /api/recipes`), list+search
+(`GET /api/recipes`), single fetch/edit/delete
+(`GET`/`PATCH`/`DELETE /api/recipes/[id]`), and the Recipe Library +
+Create/Edit Recipe screens. Several scope calls made during planning,
+recorded here:
+
+- **Recipe ingredient rows use exactly the unit set defined in
+  `.ai/Unit_Conversion_Algorithm_Spec.md`'s `RecipeIngredientEntry`**
+  (`tsp/tbsp/cup/fl_oz/ml/l/oz/lb/g/kg/whole`), not a UI-only unit list,
+  so the not-yet-built shopping-list module (US-7) can consume stored
+  recipe data without a migration. The Create/Edit Recipe form restricts
+  the unit dropdown to `whole` only for count-family ingredients and all
+  10 weight/volume units otherwise (cross-family entry, e.g. "2 tbsp
+  sugar" for a weight-family ingredient, is a deliberate feature of the
+  conversion spec, not a bug to block) — but the server only validates
+  that the unit is one of the 11 known values, not that it matches the
+  ingredient's family, since the spec explicitly allows the mismatch.
+- **Recipe delete does not warn about affected calendar days or cascade
+  calendar-assignment removal**, unlike what ARCHITECTURE.md §22
+  describes. The Calendar module doesn't exist yet (no `calendar-entry`
+  model, no calendar API on this branch), so there are no assignments
+  that could exist to check against — the client shows a generic "this
+  cannot be undone" confirmation instead. This mirrors the exact
+  reasoning already accepted for deferring ingredient delete (see below)
+  and should be upgraded to a real affected-day-count warning + cascade
+  once Calendar is built.
+- **No recipe image field or upload.** ARCHITECTURE.md's Recipe fields
+  (§7) are name/servings/ingredients only, and DESIGN.md's Create Recipe
+  form (§29.1–29.3) has no image input — only the Recipe Card mockup
+  (§22–27) shows an image, with an explicit empty-placeholder state
+  (§27) for when one is absent. Recipe cards always render that
+  placeholder; adding real image upload would need storage
+  infrastructure nothing in the spec calls for.
+- **No separate recipe description field.** The Recipe Card mockup shows
+  descriptive text under the title, but nothing in
+  `MEAL_PLANNER_REQUIREMENTS.md`/ARCHITECTURE.md defines a free-text
+  description on the Recipe model. Card descriptions are derived at
+  render time from the recipe's own ingredient names (first four, joined)
+  instead of adding an unmodeled field.
+- **Recipe Library sidebar filters are derived from tags actually in use
+  across the user's own recipes**, not DESIGN.md's mockup categories
+  (`Favorites`, `Quick Meals`, `Vegetarian`, `Meal Kits`) — those aren't
+  backed by any feature in the requirements (no favoriting exists
+  anywhere in scope), so hard-coding them would be decorative-only.
+  "All Recipes" plus one filter chip per distinct tag keeps the same
+  visual structure while staying grounded in real data.
+- **Recipes have no global/seeded scope, unlike ingredients** — every
+  recipe is private to its creator (ARCHITECTURE.md "User Data
+  Isolation" / §18 Data Ownership). Consequently `GET`/`PATCH`/
+  `DELETE /api/recipes/[id]` return **404, not 403**, for a recipe that
+  exists but belongs to another user — existence itself must stay
+  private, unlike ingredients (where a global/other-user record is at
+  least visible via search, so 403 doesn't leak anything new).
+- **Duplicate ingredient rows within one recipe are rejected client-side**
+  (and via server validation) rather than silently merged — a recipe
+  referencing the same canonical ingredient twice is more likely a UI
+  mistake than an intentional two-line recipe, and merging would need an
+  arbitrary rule (sum quantities? require matching units?) the spec
+  doesn't define.
+- **`features/recipes/components/recipe-form.tsx` imports
+  `IngredientCombobox` directly from its component file, not the
+  `features/ingredients` barrel** — see FIXES.md; the barrel also
+  re-exports `IngredientsScreen`, whose module graph pulls in `@/auth` →
+  `mongoose`, which broke `npm run build` when imported from this Client
+  Component.
+
 ## Custom ingredients feature (US-3): CRUD scope, duplicate handling, standalone page
 
 Implemented search/typeahead (`GET /api/ingredients`), create (`POST`), and
@@ -175,6 +469,9 @@ build can. Two are resolved here explicitly:
    works without it — just less polished for dry goods measured by volume.
    Highest complexity-to-value ratio item on the list; first thing to go
    under a fixed deadline.
+   **Superseded**: reversed when Shopping List was actually built — see
+   "Shopping List generation (US-7/US-8)" above. Full density-based
+   conversion is implemented.
 2. **Near-duplicate ingredient check — simplified, not fully dropped.**
    Full fuzzy matching is still cut (no algorithm was ever defined for this —
    QA review item #5 — and designing one properly is scope discovery, not
@@ -198,6 +495,11 @@ build can. Two are resolved here explicitly:
    showed it actively produces wrong-feeling output on small quantities
    (0.5g of cumin rounding up to 5g). Cutting it removes the effort and the
    bug in one move.
+   **Superseded**: reversed when Shopping List was actually built — see
+   "Shopping List generation (US-7/US-8)" above. Nearest-5g/5ml rounding
+   with kg/L switching is implemented as originally specified; the
+   small-quantity rounding complaint from QA review item #2 is an accepted
+   trade-off, not re-litigated here.
 6. **"Unmerged line" degradation logic — moot.** Only existed to handle
    missing density; with cross-family conversion cut, there's no
    missing-density case left to degrade from.

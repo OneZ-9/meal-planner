@@ -20,19 +20,115 @@ refer to that plan.
 | Dev | User Story                                                         | Status                                                                                                                                              |
 | --- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A   | US-1: signup, login, session, data isolation                       | Implemented; live Atlas browser smoke test pending. Ownership enforcement is ready via `session.user.id`; user-owned feature APIs do not exist yet. |
-| B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded; search/typeahead API, create, and update (US-3) implemented and tested — see below. Delete deferred (KNOWN_ISSUES.md). Recipe UI/API not started |
-| C   | US-5 assign to day/slot, US-9 navigate weeks                       | Not started — model exists, no UI or working API yet                                                                                                |
+| B   | Canonical ingredients (seed + typeahead), US-2/3/4 CRUD groundwork | Seed data loaded; search/typeahead API, create, and update (US-3) implemented and tested. Ingredient delete deferred (KNOWN_ISSUES.md). Recipe module (US-2/US-4) implemented — see below. |
+| C   | US-5 assign to day/slot, US-9 navigate weeks                       | Implemented — see below.                                                                                                                             |
 
 **Week 1 integration checkpoint** (per spec Section 6): all three modules
 demoable together, even shallowly, before Week 2 begins. Not yet reached.
+
+- [x] Recipe module (US-2 create, US-4 edit/delete): `GET/POST /api/recipes`,
+      `GET/PATCH/DELETE /api/recipes/[id]`, `lib/recipeValidation.ts`,
+      `lib/recipeDto.ts`, `lib/recipeIngredients.ts`,
+      `lib/models/recipe.ts` (`RecipeUnit` matches
+      `.ai/Unit_Conversion_Algorithm_Spec.md` exactly). `features/recipes/`:
+      Recipe Library (`/recipes`, search + tag-derived filters + delete
+      confirmation) and a shared Create/Edit form (`/recipes/new`,
+      `/recipes/[id]/edit`) reusing `IngredientCombobox` for ingredient
+      rows. Recipes have no global scope — always private per user. Recipe
+      delete does not yet warn about/cascade calendar assignments
+      (ARCHITECTURE.md §22) since the Calendar module doesn't exist yet —
+      same deferral pattern as ingredient delete; upgrade both once
+      Calendar is built. Verified with `npx tsc --noEmit`, `npm run lint`,
+      `npm run build`; `lib/recipeValidation.test.ts`,
+      `app/api/recipes/route.test.ts`, `app/api/recipes/[id]/route.test.ts`
+      written but unverified by execution — `npx vitest run` fails to
+      start on this machine, a pre-existing environment issue (see
+      FIXES.md), not caused by this change.
+
+- [x] Calendar module (US-5 assign to day/slot, US-9 navigate weeks):
+      `lib/models/calendarEntry.ts` (`CalendarEntryModel`, one unique
+      `(userId, date, mealSlot)` per assignment), `lib/mealSlot.ts` (the
+      `MealSlot`/`MEAL_SLOTS` source of truth, kept model-free so client
+      components can import it without pulling in Mongoose — see FIXES.md),
+      `lib/dateWeek.ts` (Mon-Sun week math via `date-fns`),
+      `lib/calendarValidation.ts`, `lib/calendarDto.ts`,
+      `GET/POST /api/calendar` (week read + assign-or-replace upsert),
+      `DELETE /api/calendar/[id]` (remove one assignment). `features/calendar/`:
+      `CalendarScreen` (`/calendar`, Weekly Plan grid) with week
+      Prev/Today/Next navigation, an assign-recipe dialog (searches the
+      user's own recipes via the existing recipe search API), and a meal
+      chip with a Change/Remove kebab menu, plus a read-only
+      `RecipeDetailsDialog` (name, servings, prep time, tags, ingredients,
+      instructions) opened by clicking the chip itself — backed by a
+      calendar-local `useRecipeDetails` hook rather than
+      `features/recipes/hooks/useRecipe`, see DECISIONS.md. Assigning to an
+      occupied slot
+      replaces the recipe via the same upsert (no separate "replace" code
+      path). Recipe-delete's affected-day warning/cascade (ARCHITECTURE.md
+      §22) was intentionally left unimplemented this pass — see
+      KNOWN_ISSUES.md. Verified with `npx tsc --noEmit`, `npm run lint`,
+      `npm run build`; `lib/dateWeek.test.ts`, `lib/calendarValidation.test.ts`,
+      `app/api/calendar/route.test.ts`, `app/api/calendar/[id]/route.test.ts`
+      written but unverified by execution — `npx vitest run` still fails to
+      start on this machine (pre-existing environment issue, see FIXES.md).
+
+- [x] Recipe delete cascade (ARCHITECTURE.md §22): `DELETE
+      /api/recipes/[id]` now removes calendar assignments referencing the
+      deleted recipe via `CalendarEntryModel.deleteMany`, and a new
+      `GET /api/recipes/[id]/calendar-usage` backs a real affected-day-count
+      warning in the delete confirmation dialog (`useRecipeCalendarUsage`).
+      `useDeleteRecipe` also invalidates `["calendar"]` queries so an open
+      Weekly Plan view drops removed chips. See DECISIONS.md "Recipe delete
+      cascade (ARCHITECTURE.md §22)". Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, and — for the first time this
+      project — an actually-passing `npx vitest run` (97/97 tests, 13
+      files; the previously-blocking Vitest/rolldown issue no longer
+      reproduces on this machine, see FIXES.md). That first real run also
+      caught and fixed two unrelated pre-existing bugs (incomplete recipe
+      model mocks, case-sensitive tag dedup) — see FIXES.md/DECISIONS.md.
+
+- [x] Shopping List module (US-7 generate, US-8 checklist): full
+      density-based unit conversion (reversing the earlier same-family-only
+      cut — see DECISIONS.md "Shopping List generation (US-7/US-8)").
+      `lib/unitConversion.ts` (`normalizeRecipeQuantity`,
+      `formatDisplayQuantity` — the four-step algorithm from
+      `.ai/Unit_Conversion_Algorithm_Spec.md`, hand-rolled ratios matching
+      its verified test cases exactly), `lib/shoppingListGenerator.ts`
+      (group by `ingredientId:resultUnit`, sum, round), `lib/models/
+      shoppingListItemState.ts` (checked-state persistence only — the list
+      itself is always regenerated live, never stored), `lib/
+      shoppingListValidation.ts`, `GET/PATCH /api/shopping-list`
+      (`weekStart` query param; PATCH always takes an `itemKeys: string[]`
+      so one endpoint covers a single checkbox and the "Clear Checked"/
+      "Check All" bulk actions). `features/shopping-list/`:
+      `ShoppingListScreen` (`/shopping-list`, DESIGN.md section 30) with
+      Prev/Today/Next week navigation (added beyond DESIGN.md's static
+      mockup, matching Calendar — the list is genuinely week-scoped),
+      optimistic checkbox toggling (`useUpdateShoppingListChecks` — the
+      only optimistic mutation in this app, since US-8 is specifically
+      about responsiveness while shopping), hand-rolled checkbox/progress-
+      bar UI (no new shadcn primitive), and a flat item list instead of
+      DESIGN.md's category-grouped layout (no aisle/category field exists;
+      see KNOWN_ISSUES.md). Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, and `npx vitest run` (130/130 tests,
+      17 files — new: `lib/unitConversion.test.ts`,
+      `lib/shoppingListGenerator.test.ts`,
+      `lib/shoppingListValidation.test.ts`,
+      `app/api/shopping-list/route.test.ts`). A signed-out HTTP request to
+      `/shopping-list` was smoke-tested (307 → `/login`); not otherwise
+      manually exercised in a live browser (no browser automation tool
+      available, same limitation noted throughout `.ai/CURRENT.md`).
+
+This completes all five MVP modules (Auth, Ingredients, Recipes, Calendar,
+Shopping List).
 
 ## Week 2 — not started
 
 | Dev | User Story                                           | Priority      |
 | --- | ---------------------------------------------------- | ------------- |
-| A   | US-7 generate shopping list (same-family conversion) | Must          |
+| A   | US-7 generate shopping list (same-family conversion) | Done — see above (built with full conversion, not same-family-only) |
 | B   | US-4 recipe edit/delete, ingredient creation flow    | Must / Should |
-| C   | US-8 checklist, empty states, polish                 | Must / Should |
+| C   | US-8 checklist, empty states, polish                 | Done — see above |
 
 ## Also pending (not story-specific)
 
@@ -55,9 +151,11 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       search/create/update → ownership + duplicate checks → paged
       through all 148 seeded ingredients, then cleaned up).
 - [ ] Vercel project connected (see DEPLOYMENT.md).
-- [ ] Recipes page UI (`/recipes`), Calendar page UI (`/calendar`),
-      Shopping List page UI (`/shopping-list`) — none built yet, only
-      Login, Dashboard, and Ingredients.
+- [x] Shopping List page UI (`/shopping-list`) — built, see the Shopping
+      List module entry above. All six planned pages now exist: Login,
+      Dashboard, Ingredients, Recipes (`/recipes`, `/recipes/new`,
+      `/recipes/[id]/edit`), Calendar (`/calendar`), Shopping List
+      (`/shopping-list`).
 
 ## Explicitly deferred (Future Features, not MVP)
 
