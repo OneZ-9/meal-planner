@@ -99,3 +99,13 @@ export const deleteRecipe = async (id: string): Promise<void> => {
     throw new Error(await parseErrorMessage(response));
   }
 };
+
+export const fetchRecipeCalendarUsage = async (
+  id: string,
+): Promise<{ count: number }> => {
+  const response = await fetch(`/api/recipes/${id}/calendar-usage`);
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+  return response.json();
+};

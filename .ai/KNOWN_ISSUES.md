@@ -25,18 +25,16 @@
   Recipe model now exists, but computing this count wasn't part of the
   Recipe module's own scope — upgrade to a real count as a small
   follow-up (query recipes referencing the ingredient's `_id`).
-- **Recipe delete still has no affected-calendar-day warning or cascade.**
-  ARCHITECTURE.md §22 calls for warning the user with an affected-day
-  count and removing calendar assignments when a recipe assigned to the
-  calendar is deleted. The Calendar module (`CalendarEntryModel`,
-  `app/api/calendar/`) now exists, so this is buildable — a first pass
-  was written and then explicitly reverted at the user's request during
-  the Calendar session to keep that change scoped to the Calendar module
-  only (see DECISIONS.md "Calendar module (US-5/US-9)"). The client still
-  shows a generic "this cannot be undone" confirmation instead of a real
-  day count, and deleting a recipe currently leaves its calendar
-  assignments in place (dangling `recipeId` references) rather than
-  cascading. Upgrade as a follow-up to the Recipe module.
+- **Recipe delete cascade has no transactional guarantee.** Deleting a
+  recipe (`DELETE /api/recipes/[id]`) now cascades to remove its calendar
+  assignments (`ARCHITECTURE.md` §22, implemented — see DECISIONS.md
+  "Recipe delete cascade (ARCHITECTURE.md §22)"), but the two writes
+  aren't wrapped in a Mongo transaction. If the process dies between the
+  recipe delete and the `CalendarEntryModel.deleteMany` call, a calendar
+  entry can be left pointing at a deleted recipe. This fails safe:
+  `toCalendarEntryDTO` already drops any entry whose recipe lookup misses,
+  so a dangling entry is silently invisible rather than erroring — same
+  accepted-risk shape as DECISIONS.md's "blunt cascade" call.
 
 ## Accepted risks (per spec)
 

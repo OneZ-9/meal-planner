@@ -1,3 +1,46 @@
+## Recipe delete cascade (ARCHITECTURE.md §22)
+
+Implemented the deferral called out in KNOWN_ISSUES.md/CURRENT.md since the
+Calendar module landed: `DELETE /api/recipes/[id]` now removes any calendar
+assignments referencing the deleted recipe, and the client warns with a real
+affected-day count before confirming.
+
+- **New endpoint `GET /api/recipes/[id]/calendar-usage`** returns `{ count
+  }` rather than folding the count into the existing `GET /api/recipes/[id]`
+  response. The edit page also calls that existing GET and has no use for
+  the count, so a separate endpoint keeps that read cheap and makes the
+  delete-warning's data dependency explicit. Same 404-not-403 ownership
+  check as every other recipe route.
+- **Sequence is delete-recipe-then-deleteMany-assignments, no Mongo
+  transaction** — matches the "blunt cascade" call already accepted in this
+  file's cut-list section (item 4) for the same reason: transactions are
+  disproportionate effort for a Should-have, and the failure mode (a
+  dangling `recipeId` reference if the process dies mid-cascade) already
+  fails safe today, since `toCalendarEntryDTO` filters out any calendar
+  entry whose recipe lookup misses.
+- **The confirmation dialog always renders** (even when the affected count
+  is 0 or still loading) rather than gating on the count query — it shows
+  the existing generic "cannot be undone" copy until/unless the count comes
+  back positive, then swaps in the day-count warning. This avoids adding a
+  loading state to the delete button itself and matches how the dialog
+  already behaves before this change.
+- **"Update Affected Lists" (the diagram's last step) is a no-op for now**
+  — the Shopping List module doesn't exist yet. Once it does, it will read
+  calendar assignments live (same "no snapshot" boundary as recipes), so a
+  cascaded-away assignment simply won't appear in the next generation — no
+  extra propagation step needed here, matching how recipe edits already
+  propagate (ARCHITECTURE.md "Recipe Edit Data Flow").
+- Discovered and fixed two unrelated pre-existing bugs while verifying this
+  change, once `npx vitest run` started working again on this machine (see
+  FIXES.md): an incomplete `vi.mock("@/lib/models/recipe", ...)` in two
+  recipe route test files (missing the real `RECIPE_UNITS` export, crashing
+  every POST/PATCH test that reached validation), and a case-sensitive tag
+  dedup in `lib/recipeValidation.ts` (`new Set` instead of a
+  lowercase-keyed dedup) that its own test caught immediately once it could
+  actually run. Both were fixed rather than left red, since they were
+  one-line, behavior-restoring fixes with an existing test already stating
+  the intended behavior — not new scope.
+
 ## Calendar module (US-5/US-9): scope, date modeling, and library choice
 
 Implemented weekly navigation and recipe assignment: `GET/POST /api/calendar`

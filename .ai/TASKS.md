@@ -72,6 +72,21 @@ demoable together, even shallowly, before Week 2 begins. Not yet reached.
       written but unverified by execution — `npx vitest run` still fails to
       start on this machine (pre-existing environment issue, see FIXES.md).
 
+- [x] Recipe delete cascade (ARCHITECTURE.md §22): `DELETE
+      /api/recipes/[id]` now removes calendar assignments referencing the
+      deleted recipe via `CalendarEntryModel.deleteMany`, and a new
+      `GET /api/recipes/[id]/calendar-usage` backs a real affected-day-count
+      warning in the delete confirmation dialog (`useRecipeCalendarUsage`).
+      `useDeleteRecipe` also invalidates `["calendar"]` queries so an open
+      Weekly Plan view drops removed chips. See DECISIONS.md "Recipe delete
+      cascade (ARCHITECTURE.md §22)". Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, and — for the first time this
+      project — an actually-passing `npx vitest run` (97/97 tests, 13
+      files; the previously-blocking Vitest/rolldown issue no longer
+      reproduces on this machine, see FIXES.md). That first real run also
+      caught and fixed two unrelated pre-existing bugs (incomplete recipe
+      model mocks, case-sensitive tag dedup) — see FIXES.md/DECISIONS.md.
+
 ## Week 2 — not started
 
 | Dev | User Story                                           | Priority      |

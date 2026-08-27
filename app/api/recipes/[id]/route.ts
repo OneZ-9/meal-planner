@@ -11,6 +11,7 @@ import {
   uniqueIngredientIds,
 } from "@/lib/recipeIngredients";
 import { RecipeModel } from "@/lib/models/recipe";
+import { CalendarEntryModel } from "@/lib/models/calendarEntry";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -103,13 +104,15 @@ export const PATCH = async (
   return NextResponse.json(toRecipeDTO(recipe, ingredientLookup));
 };
 
-// Deletes a recipe (US-4). ARCHITECTURE.md's "Recipe Delete Data Flow" calls
-// for warning the user with an affected-day count and cascading the delete
-// to calendar assignments when the recipe is assigned to the calendar — but
-// the Calendar module doesn't exist yet (no calendar-entry model or API), so
-// there are no assignments that could exist to check against. This mirrors
-// the same deferral already accepted for ingredient delete (see
-// KNOWN_ISSUES.md) and should be upgraded once Calendar is built.
+// Deletes a recipe (US-4). ARCHITECTURE.md "Recipe Delete Data Flow" (§22)
+// calls for cascading the delete to any calendar assignments that reference
+// it. The client fetches the affected-day count up front (see
+// GET /api/recipes/[id]/calendar-usage) to show the warning before the user
+// confirms; this route just performs the cascade itself. No Mongo
+// transaction — DECISIONS.md accepts a dangling calendar entry as the rare,
+// operationally-fixable failure mode if the second step fails, and
+// toCalendarEntryDTO already filters out entries whose recipe lookup misses,
+// so a dangling entry fails safe (silently dropped) rather than erroring.
 export const DELETE = async (
   _request: Request,
   { params }: RouteContext,
@@ -132,6 +135,8 @@ export const DELETE = async (
   if (!deleted) {
     return NextResponse.json({ message: "Recipe not found." }, { status: 404 });
   }
+
+  await CalendarEntryModel.deleteMany({ userId: session.user.id, recipeId: id });
 
   return new NextResponse(null, { status: 204 });
 };

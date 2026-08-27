@@ -9,9 +9,13 @@ import { GET, POST } from "./route";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/mongodb", () => ({ connectDB: vi.fn() }));
-vi.mock("@/lib/models/recipe", () => ({
-  RecipeModel: { find: vi.fn(), create: vi.fn() },
-}));
+vi.mock("@/lib/models/recipe", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/models/recipe")>();
+  return {
+    ...actual,
+    RecipeModel: { find: vi.fn(), create: vi.fn() },
+  };
+});
 vi.mock("@/lib/models/ingredient", () => ({
   IngredientModel: { find: vi.fn() },
 }));

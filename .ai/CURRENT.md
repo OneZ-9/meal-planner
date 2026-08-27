@@ -6,13 +6,40 @@
 
 ## Objective (right now)
 
-Calendar module (US-5 assign recipe to day/slot, US-9 navigate weeks)
-implemented on top of the completed US-1 auth, Ingredients, and Recipes
-work: weekly grid, recipe assignment/replacement, and Prev/Today/Next week
-navigation.
+Recipe delete cascade (ARCHITECTURE.md §22) implemented on top of the
+completed Calendar module: deleting a recipe now removes its calendar
+assignments and warns the user with a real affected-day count first.
+Shopping List (US-7/US-8) is the one remaining unbuilt module.
 
 ## Recent work
 
+- Implemented the recipe-delete cascade deferred since the Calendar module
+  landed (ARCHITECTURE.md §22, KNOWN_ISSUES.md, DECISIONS.md "Calendar
+  module (US-5/US-9)"): `DELETE /api/recipes/[id]` now calls
+  `CalendarEntryModel.deleteMany({ userId, recipeId })` after deleting the
+  recipe (no transaction — matches the already-accepted "blunt cascade"
+  risk in DECISIONS.md). Added `GET /api/recipes/[id]/calendar-usage`
+  (`{ count }`, same 404-not-403 ownership rule as the other recipe
+  routes) and a matching `useRecipeCalendarUsage` hook so the delete
+  confirmation dialog in `recipes-manager.tsx` shows a real "assigned to N
+  calendar days" warning instead of always showing the generic "cannot be
+  undone" copy. `useDeleteRecipe` now also invalidates `["calendar"]`
+  queries so an open Weekly Plan view drops the removed chips. See
+  DECISIONS.md "Recipe delete cascade (ARCHITECTURE.md §22)" for the full
+  reasoning, including why "Update Affected Lists" (the diagram's last
+  step) is a no-op until Shopping List exists.
+- **The Vitest/rolldown native-binding issue that blocked `npx vitest run`
+  on this machine across every prior session no longer reproduces** — cause
+  unknown, no reinstall performed this session. Running the suite for real
+  for the first time (97 tests, 13 files, all passing after fixes below)
+  caught two unrelated pre-existing bugs that had only ever been "verified
+  by reading": `app/api/recipes/route.test.ts` and
+  `app/api/recipes/[id]/route.test.ts` mocked `@/lib/models/recipe` without
+  the real `RECIPE_UNITS` export that `lib/recipeValidation.ts` needs at
+  runtime (fixed via `importOriginal`), and `lib/recipeValidation.ts`'s tag
+  dedup used a case-sensitive `Set` so `"Dinner"`/`"dinner"` produced two
+  tags instead of one (fixed with a lowercase-keyed dedup that keeps
+  first-seen casing). See FIXES.md.
 - Implemented the Calendar module (US-5/US-9): `lib/models/calendarEntry.ts`
   (`CalendarEntryModel`, unique `(userId, date, mealSlot)` per assignment —
   assigning again on an occupied slot replaces via upsert rather than
@@ -209,47 +236,47 @@ None currently.
    user-owned API as shopping-list routes are implemented (Ingredients,
    Recipes, and Calendar now all do this — shopping-list is the one
    remaining module).
-3. Shopping List (US-7/US-8) is the natural next target: reads the Calendar
-   module's assignments + Recipe ingredients, normalizes/merges quantities
-   per `.ai/Unit_Conversion_Algorithm_Spec.md`, and needs its own
-   checked-state persistence (US-8). No shopping-list model or API exists
-   yet.
-4. Upgrade recipe delete to warn about affected calendar days and cascade
-   the removal of those assignments (ARCHITECTURE.md §22) — buildable now
-   that `CalendarEntryModel` exists, but deliberately left undone this
-   session (see KNOWN_ISSUES.md and DECISIONS.md "Calendar module
-   (US-5/US-9)"). Do this before or alongside Shopping List, since a
-   dangling calendar entry pointing at a deleted recipe would otherwise
-   surface as a confusing gap in a generated shopping list.
-5. Resolve the Vitest/rolldown native-binding environment issue (see
-   FIXES.md) so `npm test` is runnable again on this machine — needed to
-   actually execute the Recipe and Calendar test files written across
-   sessions (and the existing ingredient/auth tests).
+3. Shopping List (US-7/US-8) is the natural next target, and now the only
+   unbuilt module: reads the Calendar module's assignments + Recipe
+   ingredients, normalizes/merges quantities per
+   `.ai/Unit_Conversion_Algorithm_Spec.md`, and needs its own checked-state
+   persistence (US-8). No shopping-list model or API exists yet.
+4. Not manually exercised in a live browser this session (no browser
+   automation tool available, same limitation noted throughout this file) —
+   worth a manual click-through of the recipe delete flow (both with and
+   without calendar assignments) before considering it fully done.
 
 ## Validation state
 
-- Calendar module: `npx tsc --noEmit`, `npm run lint`, and `npm run build`
-  all pass. `npx vitest run` still fails to start on this machine (same
-  pre-existing environment issue, see FIXES.md), so
-  `lib/dateWeek.test.ts`, `lib/calendarValidation.test.ts`,
-  `app/api/calendar/route.test.ts`, and `app/api/calendar/[id]/route.test.ts`
-  are unverified by execution, only by reading. Not manually exercised in a
-  live browser this session (no browser automation tool available, same
-  limitation noted throughout this file).
-- Recipe module: `npx tsc --noEmit`, `npm run lint`, and `npm run build`
-  all pass (build includes the barrel-import fix above). `npx vitest run`
-  fails to start on this machine — pre-existing environment issue, not
-  caused by this change (see FIXES.md) — so the new recipe tests are
-  unverified by execution, only by reading. Not manually exercised against
-  live Atlas in a browser this session (no browser automation tool
-  available, same limitation noted below for ingredients).
+- Recipe delete cascade: `npx tsc --noEmit`, `npm run lint`, `npm run
+  build`, and `npx vitest run` (13 files, 97 tests) all pass — the first
+  time this repo's full suite has actually executed rather than being
+  verified by reading (see FIXES.md). New coverage:
+  `app/api/recipes/[id]/route.test.ts` (DELETE now asserts the
+  `CalendarEntryModel.deleteMany` cascade call, and that it's skipped when
+  the recipe isn't owned by the caller) and a new
+  `app/api/recipes/[id]/calendar-usage/route.test.ts`. Not manually
+  exercised in a live browser this session (no browser automation tool
+  available, same limitation noted throughout this file) — see "Next
+  action" above.
+- Calendar module: `npx tsc --noEmit`, `npm run lint`, `npm run build`, and
+  now `npx vitest run` all pass — `lib/dateWeek.test.ts`,
+  `lib/calendarValidation.test.ts`, `app/api/calendar/route.test.ts`, and
+  `app/api/calendar/[id]/route.test.ts` are confirmed passing, not just
+  read. Not manually exercised in a live browser this session (no browser
+  automation tool available, same limitation noted throughout this file).
+- Recipe module: `npx tsc --noEmit`, `npm run lint`, `npm run build`, and
+  now `npx vitest run` all pass (after the mock/dedup fixes in FIXES.md).
+  Not manually exercised against live Atlas in a browser this session (no
+  browser automation tool available, same limitation noted below for
+  ingredients).
 - `npx tsc --noEmit` and `npm run lint` — clean after the ingredient
   pagination/scope-filter change.
-- `npm test -- --run` passes (5 files, 28 tests); coverage includes
-  registration validation, root auth redirects, ingredient validation,
-  and the ingredient API routes (search scoping incl. `scope=custom`/
-  `scope=global`, pagination `nextCursor`, create/update ownership,
-  duplicate-check 409s, 403/404 cases).
+- `npm test -- --run` passes (13 files, 97 tests as of the recipe-delete-
+  cascade session); coverage includes registration validation, root auth
+  redirects, ingredient validation, and the ingredient API routes (search
+  scoping incl. `scope=custom`/`scope=global`, pagination `nextCursor`,
+  create/update ownership, duplicate-check 409s, 403/404 cases).
 - `npm run build` passes; local HTTP smoke checks return 200 for `/login`
   and `/register`, and 307 `/login` for a signed-out `/dashboard` request.
 - Ingredient endpoints (including the new pagination/scope params) were
