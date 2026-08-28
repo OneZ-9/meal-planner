@@ -16,6 +16,53 @@ new modules.
 
 ## Recent work
 
+Investigating a reported "recipe saves with a duplicate ingredient" issue
+(from another dev) on top of the completed US-1 auth, Ingredients, Recipes,
+and Calendar work. Applied a defensive double-submit-guard fix; **root
+cause not confirmed** — see below.
+
+## Recent work
+
+- **Bug investigation — recipe reportedly ends up with a duplicate-looking
+  ingredient** (reported by another dev; not reproduced firsthand in a
+  browser — no browser automation tool available). Initial static-analysis
+  theory: a fast double-click (or Enter-then-click) on the
+  ingredient-create dialog's submit button fires the handler twice before
+  React re-renders with `isSubmitting: true` and disables the button (the
+  `disabled` prop only reflects the in-flight mutation a tick *after* the
+  click), sending two `POST /api/ingredients` requests for the same name;
+  if both succeeded, `recipe-form.tsx`'s `ingredientId`-based dedup
+  couldn't catch two different ingredient records with the same name.
+  **Live-tested against the real Atlas cluster once `.env.local` was
+  provided mid-session** (register test user → sign in via NextAuth
+  credentials → fire two genuinely concurrent `POST /api/ingredients` for
+  the same new name): the app-level `findOne`-then-`create` check plus the
+  DB's unique index correctly produced one `201` + one `409`, only one
+  document ever persisted. A full create-ingredient → create-recipe →
+  fetch-recipe round trip also came back clean (no duplication). **So this
+  specific failure mode did not reproduce server-side** — the DB-level
+  protection held under a direct race test in this environment. Test data
+  (`claude-bugtrace@example.com`, the test recipe, the test ingredient) was
+  cleaned up afterward (recipe via `DELETE /api/recipes/[id]`; the
+  user/ingredient via a one-off `mongoose` script, since ingredient/user
+  delete aren't exposed via API).
+  **Fix applied anyway, as defensive hardening** (prevents the double
+  request from firing at all, rather than depending on 409-timing luck):
+  added a synchronous double-submit guard via `useRef` (not `useState` —
+  state updates aren't visible until the next render, so they can't close
+  this specific race window) to
+  `features/ingredients/components/ingredient-form-dialog.tsx` and
+  `features/recipes/components/recipe-form.tsx`, reset once the mutation
+  actually settles (success or error) via `useEffect` — refs must only be
+  written in effects/handlers, never during render (trips the
+  `react-hooks/refs` lint rule otherwise; the existing "adjust state during
+  render" pattern in this codebase is specifically for state, not refs).
+  `npx tsc --noEmit`, `npm run lint`, `npm run build` all pass.
+  **Still unresolved / next step**: the original report's exact mechanism
+  is still unknown — worth getting the reporting dev's browser Network tab
+  or exact repro steps next time it happens, since a live server-side race
+  test couldn't trigger it. See FIXES.md for the full writeup.
+
 - Changed the Calendar and Shopping List week-nav control on request: the
   middle pill now shows the current week's date range (e.g. "Oct 23 – Oct
   29, 2023") instead of a static "Today" label, and the separate
@@ -306,6 +353,24 @@ modules:
    the existing recipe-reference one.
 4. Vercel project connection / deployment (see DEPLOYMENT.md) — not done
    yet.
+
+5. Upgrade recipe delete to warn about affected calendar days and cascade
+   the removal of those assignments (ARCHITECTURE.md §22) — buildable now
+   that `CalendarEntryModel` exists, but deliberately left undone this
+   session (see KNOWN_ISSUES.md and DECISIONS.md "Calendar module
+   (US-5/US-9)"). Do this before or alongside Shopping List, since a
+   dangling calendar entry pointing at a deleted recipe would otherwise
+   surface as a confusing gap in a generated shopping list.
+6. Resolve the Vitest/rolldown native-binding environment issue (see
+   FIXES.md) so `npm test` is runnable again on this machine — needed to
+   actually execute the Recipe and Calendar test files written across
+   sessions (and the existing ingredient/auth tests).
+7. Get exact repro steps (or a browser Network-tab capture) from the dev
+   who reported the "recipe saves with a duplicate ingredient" bug — a
+   direct server-side concurrency test couldn't trigger the failure this
+   session (see FIXES.md), so the double-submit guard already applied is a
+   reasonable hardening pass but not a confirmed fix for whatever they
+   actually saw.
 
 ## Validation state
 
