@@ -54,6 +54,12 @@ export interface RecipeDocument extends Document {
   tags: string[];
   instructions: string;
   ingredients: RecipeIngredientEntry[];
+  // A Vercel Blob URL (https://*.public.blob.vercel-storage.com/recipe-images/...),
+  // never a local filesystem path — Vercel's serverless functions don't have
+  // a persistent/shared disk, so the file itself lives in Blob storage; this
+  // field is just a pointer to it. Null when no image has been uploaded, in
+  // which case the UI shows DESIGN.md's empty-image placeholder.
+  imageUrl: string | null;
   userId: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -79,6 +85,7 @@ const recipeSchema = new Schema<RecipeDocument>(
     prepTimeMinutes: { type: Number, default: null, min: 0 },
     tags: { type: [String], default: [] },
     instructions: { type: String, default: "", trim: true },
+    imageUrl: { type: String, default: null },
     // A recipe cannot be saved with zero ingredients (US-2) — enforced here
     // as well as in lib/recipeValidation.ts, per ARCHITECTURE.md's layered
     // validation rule (UI / server / database each enforce independently).

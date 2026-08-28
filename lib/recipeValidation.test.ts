@@ -27,11 +27,12 @@ describe("recipe validation", () => {
         tags: ["Dinner", "Quick"],
         instructions: "Step 1: ...\nStep 2: ...",
         ingredients: [{ ingredientId: validIngredientId, quantity: 2, unit: "tbsp" }],
+        imageUrl: null,
       },
     });
   });
 
-  it("accepts a recipe with no prep time, tags, or instructions", () => {
+  it("accepts a recipe with no prep time, tags, instructions, or image", () => {
     const result = validateRecipeInput({
       name: "Simple Salad",
       servings: 2,
@@ -47,8 +48,27 @@ describe("recipe validation", () => {
         tags: [],
         instructions: "",
         ingredients: [{ ingredientId: validIngredientId, quantity: 1, unit: "whole" }],
+        imageUrl: null,
       },
     });
+  });
+
+  it("accepts a valid https imageUrl", () => {
+    const result = validateRecipeInput({
+      ...validPayload,
+      imageUrl: "https://example.public.blob.vercel-storage.com/recipe-images/abc.jpg",
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.success && result.values.imageUrl).toBe(
+      "https://example.public.blob.vercel-storage.com/recipe-images/abc.jpg",
+    );
+  });
+
+  it("rejects a non-http(s) imageUrl", () => {
+    expect(
+      validateRecipeInput({ ...validPayload, imageUrl: "javascript:alert(1)" }),
+    ).toEqual({ success: false, message: "imageUrl must be a valid http(s) URL." });
   });
 
   it("rejects an empty name", () => {

@@ -6,17 +6,58 @@
 
 ## Objective (right now)
 
-Shopping List (US-7/US-8) is implemented — all five MVP modules (Auth,
-Ingredients, Recipes, Calendar, Shopping List) now exist. Full
-density-based unit conversion and nearest-5g/5ml/kg-L rounding were built
-(the user reversed the earlier same-family-only/plain-decimal scope cut
-when asked directly before starting). Remaining work is Week 2 polish
-(ingredient delete, live browser verification, deployment) rather than
-new modules.
+All five MVP modules (Auth, Ingredients, Recipes, Calendar, Shopping List)
+are implemented, plus one non-spec addition on request: recipe image
+upload via Vercel Blob. Remaining work is Week 2 polish (ingredient
+delete, live browser verification against a real Blob store, deployment)
+rather than new modules.
 
 ## Recent work
 
-<<<<<<< HEAD
+- Fixed a second occurrence of literal unresolved git-merge conflict
+  markers committed directly into this file's "Recent work" section (a
+  nested `<<<<<<< HEAD` / `=======` / `<<<<<<< HEAD` / `>>>>>>> adeepa/dev`
+  this time, wrapping a sign-out-confirmation entry from another dev's
+  branch) — combined the content in place, same as the first occurrence
+  fixed earlier the same day. If this keeps recurring, it's worth raising
+  with whoever's merging `adeepa/dev` in: something in that workflow is
+  committing conflict markers instead of resolving them.
+- Added recipe image upload (Create/Edit Recipe) — not an original spec
+  feature, added on explicit request. The user's initial proposal was a
+  gitignored repo-local `uploads/` folder; flagged before writing any
+  code that this breaks in production, since `DEPLOYMENT.md` targets
+  Vercel and its serverless functions have no persistent/shared disk — a
+  file written at runtime to a local folder won't reliably exist for a
+  later request. Given four options, the user chose **Vercel Blob**.
+  Implementation: `RecipeModel.imageUrl` (`string | null`), validated as
+  `null` or an `http(s)://` URL in `lib/recipeValidation.ts`;
+  `POST /api/recipes/image-upload` issues a scoped upload token via
+  `@vercel/blob/client`'s `handleUpload` (auth-gated, constrained to
+  image content-types and a 5MB max) rather than reading the file through
+  this server — a client-side upload, so a full-resolution phone photo
+  doesn't hit Vercel's ~4.5MB server-upload body limit; the browser talks
+  directly to Blob storage via `lib/api/recipes.ts`'s `uploadRecipeImage`.
+  `lib/recipeImageStorage.ts` best-effort-deletes the old image when
+  replaced or when a recipe is deleted. `recipe-form.tsx` gained an
+  upload/preview/replace/remove UI (with a local `URL.createObjectURL`
+  preview while the real upload is in flight); `recipe-card.tsx` and the
+  calendar's `recipe-details-dialog.tsx` render the image when set,
+  otherwise falling back to the pre-existing empty-placeholder. Plain
+  `<img>` used throughout instead of `next/image`, since Vercel Blob's
+  hostname is per-project and dynamic. **This was built once, fully
+  reverted the same session after the user reconsidered whether it was
+  worth it, then rebuilt identically once a size-limit misunderstanding
+  behind that reconsideration was cleared up** — see DECISIONS.md "Recipe
+  image upload (Vercel Blob)" for the full reasoning and that back-and-
+  forth, including why the `@vercel/blob@2.8.0` API was verified by
+  reading its shipped `.d.ts` files rather than trusted from (possibly
+  stale) training-data memory.
+- Added a confirmation dialog to the shared app-shell sign-out control. The
+  header button now asks "Are you sure you want to sign out?" and offers
+  Cancel / Sign out actions; the actual Auth.js sign-out remains a Server
+  Action and still redirects to `/login`. The client-only dialog is isolated
+  in `features/app-shell/components/sign-out-control.tsx` so `@/auth` and its
+  server dependencies stay out of the browser bundle.
 - Replaced the Dashboard's hard-coded "This Week's Plan" values with live
   current-week data while preserving the `docs/design-reference/dashboard.png`
   layout. `features/dashboard/components/dashboard-screen.tsx` remains the
@@ -32,55 +73,38 @@ new modules.
   Breakfast/Lunch/Dinner slots in red, or green `3 meals already selected`
   when today's three slots are filled. See DECISIONS.md "Dashboard
   current-week metric definitions".
-=======
-Investigating a reported "recipe saves with a duplicate ingredient" issue
-(from another dev) on top of the completed US-1 auth, Ingredients, Recipes,
-and Calendar work. Applied a defensive double-submit-guard fix; **root
-cause not confirmed** — see below.
-
-## Recent work
-
-- **Bug investigation — recipe reportedly ends up with a duplicate-looking
-  ingredient** (reported by another dev; not reproduced firsthand in a
-  browser — no browser automation tool available). Initial static-analysis
-  theory: a fast double-click (or Enter-then-click) on the
-  ingredient-create dialog's submit button fires the handler twice before
-  React re-renders with `isSubmitting: true` and disables the button (the
-  `disabled` prop only reflects the in-flight mutation a tick *after* the
-  click), sending two `POST /api/ingredients` requests for the same name;
-  if both succeeded, `recipe-form.tsx`'s `ingredientId`-based dedup
-  couldn't catch two different ingredient records with the same name.
-  **Live-tested against the real Atlas cluster once `.env.local` was
-  provided mid-session** (register test user → sign in via NextAuth
-  credentials → fire two genuinely concurrent `POST /api/ingredients` for
-  the same new name): the app-level `findOne`-then-`create` check plus the
-  DB's unique index correctly produced one `201` + one `409`, only one
-  document ever persisted. A full create-ingredient → create-recipe →
-  fetch-recipe round trip also came back clean (no duplication). **So this
-  specific failure mode did not reproduce server-side** — the DB-level
-  protection held under a direct race test in this environment. Test data
-  (`claude-bugtrace@example.com`, the test recipe, the test ingredient) was
-  cleaned up afterward (recipe via `DELETE /api/recipes/[id]`; the
-  user/ingredient via a one-off `mongoose` script, since ingredient/user
-  delete aren't exposed via API).
-  **Fix applied anyway, as defensive hardening** (prevents the double
-  request from firing at all, rather than depending on 409-timing luck):
-  added a synchronous double-submit guard via `useRef` (not `useState` —
-  state updates aren't visible until the next render, so they can't close
-  this specific race window) to
-  `features/ingredients/components/ingredient-form-dialog.tsx` and
-  `features/recipes/components/recipe-form.tsx`, reset once the mutation
-  actually settles (success or error) via `useEffect` — refs must only be
-  written in effects/handlers, never during render (trips the
-  `react-hooks/refs` lint rule otherwise; the existing "adjust state during
-  render" pattern in this codebase is specifically for state, not refs).
-  `npx tsc --noEmit`, `npm run lint`, `npm run build` all pass.
-  **Still unresolved / next step**: the original report's exact mechanism
-  is still unknown — worth getting the reporting dev's browser Network tab
-  or exact repro steps next time it happens, since a live server-side race
-  test couldn't trigger it. See FIXES.md for the full writeup.
-
->>>>>>> origin/dev
+- **Bugfix — creating an ingredient inline mid-recipe (search finds no
+  match → Create) saved two duplicate recipes** (reported by another dev;
+  root cause confirmed by them after the fix landed — the initial pass at
+  this entry incorrectly assumed the symptom was a duplicated *ingredient*
+  row and chased a double-submit *race*, which a live test against the
+  real Atlas cluster ruled out as the actual cause). Best-supported
+  explanation: `IngredientFormDialog`'s popup renders via a `DialogPortal`,
+  so its `<form onSubmit>` is physically outside `RecipeForm`'s own
+  `<form onSubmit={handleSubmit}>` in the DOM, but remains a descendant in
+  the **React component tree** — React's documented portal behavior bubbles
+  events along that tree, not the DOM tree. `handleFormSubmit` called
+  `event.preventDefault()` but never `event.stopPropagation()`, so
+  submitting the ingredient popup could also trigger `RecipeForm`'s own
+  submit, saving a (likely incomplete) recipe at that moment; the user's
+  later, real "Save Recipe" click then saved a second, complete one.
+  **Fix**: a synchronous double-submit guard via `useRef` (not `useState`
+  — state updates aren't visible until the next render) added to both
+  `features/ingredients/components/ingredient-form-dialog.tsx` (create/edit
+  submit handlers) and `features/recipes/components/recipe-form.tsx`
+  (`handleSubmit`), set `true` the instant a submit starts and cleared via
+  `useEffect` once the mutation settles (success or error) — refs must only
+  be written in effects/handlers, never during render (trips the
+  `react-hooks/refs` lint rule; the existing "adjust state during render"
+  pattern in this codebase is for state, not refs). **Confirmed working by
+  the reporting dev.** A more surgical fix at the actual source — adding
+  `event.stopPropagation()` in the ingredient dialog's submit handlers —
+  was identified but not applied, since the guard already resolved the
+  report; worth doing if a similar dialog-in-a-portal-inside-a-form pattern
+  resurfaces the issue. `npx tsc --noEmit`, `npm run lint`, `npm run build`
+  all pass. See FIXES.md for the full writeup, including the (ultimately
+  tangential but still valid) live DB-level test confirming ingredient
+  create-duplicate protection is solid.
 - Changed the Calendar and Shopping List week-nav control on request: the
   middle pill now shows the current week's date range (e.g. "Oct 23 – Oct
   29, 2023") instead of a static "Today" label, and the separate
@@ -358,40 +382,65 @@ modules:
    manually exercise registration/login against the intended Atlas database.
 2. Manual click-through in a live browser (no browser automation tool
    available in this environment, same limitation noted throughout this
-   file) — this has never been done for: the recipe delete cascade (both
-   with and without calendar assignments), and the entire Shopping List
+   file) — verify the new sign-out confirmation's Cancel and Sign out paths;
+   this has also never been done for: the recipe delete cascade (both
+   with and without calendar assignments), the entire Shopping List
    screen (week nav, checkbox toggling incl. optimistic-update rollback on
    a failed request, "Clear Checked"/"Check All", the empty-state message
    for a week with no assignments, and a real cross-family/no-density
-   ingredient producing an "(not merged with other units)" line).
+   ingredient producing an "(not merged with other units)" line), and
+   recipe image upload (upload/replace/remove on Create and Edit Recipe,
+   with a real Vercel Blob store — currently only unit-tested with
+   `handleUpload` mocked).
 3. Ingredient delete is still not implemented (KNOWN_ISSUES.md) — now
    buildable against a reference check on both `RecipeModel` and (new)
    whether the ingredient appears in any current shopping-list generation,
    though the latter is derived data and doesn't need its own check beyond
    the existing recipe-reference one.
 4. Vercel project connection / deployment (see DEPLOYMENT.md) — not done
-   yet.
+   yet. Once a project exists, create its Blob store too (see
+   DEPLOYMENT.md step 3) — recipe image upload needs `BLOB_READ_WRITE_TOKEN`
+   and hasn't been exercised against a real store yet, only unit-tested
+   with `handleUpload` mocked.
+5. Consider adding `event.stopPropagation()` to
+   `ingredient-form-dialog.tsx`'s submit handlers as a more direct fix for
+   the dialog-in-a-portal-inside-a-form issue described in the "Bugfix"
+   entry above and in FIXES.md — not required (the double-submit guard
+   already resolved the reported symptom, confirmed by the reporting dev),
+   but worth doing if a similar pattern (a portaled dialog's form nested,
+   in the React tree, inside another form) causes an unwanted submit
+   bubble again elsewhere.
 
-5. Upgrade recipe delete to warn about affected calendar days and cascade
-   the removal of those assignments (ARCHITECTURE.md §22) — buildable now
-   that `CalendarEntryModel` exists, but deliberately left undone this
-   session (see KNOWN_ISSUES.md and DECISIONS.md "Calendar module
-   (US-5/US-9)"). Do this before or alongside Shopping List, since a
-   dangling calendar entry pointing at a deleted recipe would otherwise
-   surface as a confusing gap in a generated shopping list.
-6. Resolve the Vitest/rolldown native-binding environment issue (see
-   FIXES.md) so `npm test` is runnable again on this machine — needed to
-   actually execute the Recipe and Calendar test files written across
-   sessions (and the existing ingredient/auth tests).
-7. Get exact repro steps (or a browser Network-tab capture) from the dev
-   who reported the "recipe saves with a duplicate ingredient" bug — a
-   direct server-side concurrency test couldn't trigger the failure this
-   session (see FIXES.md), so the double-submit guard already applied is a
-   reasonable hardening pass but not a confirmed fix for whatever they
-   actually saw.
+Already done, despite being listed as pending in an earlier version of this
+file that a since-resolved merge conflict had left stale: recipe delete's
+affected-calendar-day warning + cascade (ARCHITECTURE.md §22, see "Recent
+work" above), and the Vitest/rolldown native-binding issue (no longer
+reproduces — `npx vitest run` passes, see FIXES.md).
 
 ## Validation state
 
+- Recipe image upload: `npx tsc --noEmit`, `npm run lint`, `npm run build`,
+  and `npx vitest run` (19 files, 147 tests) all pass. New coverage:
+  `app/api/recipes/image-upload/route.test.ts` (auth gate, invalid-body
+  400, the `allowedContentTypes`/`maximumSizeInBytes` token config passed
+  to `handleUpload`, the `recipe-images/` pathname-prefix guard, and a
+  `handleUpload` rejection surfacing as 400) with `@vercel/blob/client`'s
+  `handleUpload` mocked; `app/api/recipes/[id]/route.test.ts` gained cases
+  for old-image cleanup on replace vs. no-op when unchanged, and
+  `DELETE`'s cleanup with vs. without a prior image, with `@vercel/blob`'s
+  `del` mocked. `lib/recipeValidation.test.ts` covers the `imageUrl`
+  http(s)-only check. **Not exercised end-to-end against a real Vercel
+  Blob store** — no `BLOB_READ_WRITE_TOKEN`/store exists yet in this
+  environment (see KNOWN_ISSUES.md), so the actual upload/replace/remove
+  flow is verified only by the mocked tests above and code review, not a
+  real upload. Not manually exercised in a live browser either (no
+  browser automation tool available, same limitation noted throughout
+  this file).
+- Sign-out confirmation: `npx tsc --noEmit`, `npm run lint`, and `npm run
+  build` pass. The production build confirms the Server Action can be passed
+  into the isolated Client Component without pulling server-only auth/database
+  dependencies into the browser bundle. Manual authenticated browser QA is
+  still pending.
 - Dashboard live metrics/highlights: `npx tsc --noEmit`, `npm run lint`,
   `npm run build`, and `npx vitest run` all pass (18 files, 136 tests). Focused
   coverage in `features/dashboard/lib/dashboard-summary.test.ts` verifies

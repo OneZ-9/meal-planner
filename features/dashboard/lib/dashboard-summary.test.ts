@@ -14,6 +14,7 @@ const recipe = (id: string): RecipeDTO => ({
   tags: [],
   instructions: "",
   ingredients: [],
+  imageUrl: null,
   createdAt: "2026-08-28T00:00:00.000Z",
   updatedAt: "2026-08-28T00:00:00.000Z",
 });

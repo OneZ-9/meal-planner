@@ -38,6 +38,17 @@ export const RecipeDetailsDialog = ({
 
         {!isLoading && recipe && (
           <>
+            {recipe.imageUrl && (
+              // Vercel Blob's hostname is dynamic per project — see
+              // DECISIONS.md "Recipe image upload (Vercel Blob)" for why
+              // this is a plain <img> rather than next/image.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt=""
+                className="aspect-[1.65/1] w-full rounded-md object-cover"
+                src={recipe.imageUrl}
+              />
+            )}
             <DialogHeader>
               <DialogTitle>{recipe.name}</DialogTitle>
               <DialogDescription>

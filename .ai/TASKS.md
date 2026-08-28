@@ -162,6 +162,25 @@ Shopping List).
       Dashboard, Ingredients, Recipes (`/recipes`, `/recipes/new`,
       `/recipes/[id]/edit`), Calendar (`/calendar`), Shopping List
       (`/shopping-list`).
+- [x] Recipe image upload (not an original spec feature — added on
+      request, reversing DECISIONS.md's earlier "no image field" call):
+      `RecipeModel.imageUrl`, `lib/recipeValidation.ts` (http(s)-only,
+      ≤2000 chars), `POST /api/recipes/image-upload` (issues a scoped
+      Vercel Blob client-upload token via `@vercel/blob/client`'s
+      `handleUpload`; the file itself uploads straight from the browser,
+      never through this server, to stay under Vercel's ~4.5MB
+      server-upload body limit), `lib/recipeImageStorage.ts` (best-effort
+      old-image cleanup on replace/delete). `recipe-form.tsx` gained an
+      upload/preview/replace/remove UI; `recipe-card.tsx` and the
+      calendar's `recipe-details-dialog.tsx` render the image when set,
+      falling back to the existing empty-placeholder otherwise. Needs a
+      real Vercel Blob store + `BLOB_READ_WRITE_TOKEN` to actually
+      exercise (see DEVELOPMENT.md/DEPLOYMENT.md) — not yet manually
+      tested end-to-end against one. This was built, fully reverted, then
+      rebuilt identically the same day — see DECISIONS.md "Recipe image
+      upload (Vercel Blob)" for why. Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, and `npx vitest run` (19 files,
+      147 tests).
 
 ## Explicitly deferred (Future Features, not MVP)
 

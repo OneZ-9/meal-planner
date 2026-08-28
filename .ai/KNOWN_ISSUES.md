@@ -37,6 +37,19 @@
   `Ingredient` has no category field and aisle categorization is an
   explicit MoSCoW "Won't" — the list renders flat instead. See
   DECISIONS.md "Shopping List generation (US-7/US-8)".
+- **A replaced/removed recipe image can leave an orphaned Vercel Blob
+  object.** Cleanup (`lib/recipeImageStorage.ts`'s
+  `deleteRecipeImageBestEffort`) is best-effort, not transactional — if
+  the delete call to Blob storage fails after the Mongo write already
+  succeeded, the old image file is simply never removed. No user-visible
+  effect (the recipe's `imageUrl` field is correct either way), just
+  accumulating unused storage. Same accepted-risk shape as the calendar
+  cascade below. See DECISIONS.md "Recipe image upload (Vercel Blob)".
+- **Recipe image upload can't be exercised locally without a real Vercel
+  Blob store.** `BLOB_READ_WRITE_TOKEN` must point at an actual store
+  (Vercel dashboard → Storage, or `vercel env pull`) — there's no local
+  mock/stub. Without it, everything else in Create/Edit Recipe still
+  works; only the image upload button fails.
 - **A shopping-list checked-state row can go unreferenced.** If a recipe
   is edited/deleted or a calendar assignment is removed such that an
   ingredient no longer appears in a week's generated list, any
