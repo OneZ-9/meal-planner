@@ -1,3 +1,5 @@
+import { upload } from "@vercel/blob/client";
+
 import type { UnitFamily } from "@/lib/models/ingredient";
 import type { RecipeUnit } from "@/lib/models/recipe";
 
@@ -17,6 +19,7 @@ export type RecipeDTO = {
   tags: string[];
   instructions: string;
   ingredients: RecipeIngredientDTO[];
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,6 +37,7 @@ export type RecipeInput = {
   tags: string[];
   instructions: string;
   ingredients: RecipeIngredientInput[];
+  imageUrl: string | null;
 };
 
 const parseErrorMessage = async (response: Response): Promise<string> => {
@@ -108,4 +112,23 @@ export const fetchRecipeCalendarUsage = async (
     throw new Error(await parseErrorMessage(response));
   }
   return response.json();
+};
+
+// Uploads a recipe image straight from the browser to Vercel Blob storage —
+// the file never passes through our own server (see
+// app/api/recipes/image-upload/route.ts's "client upload" comment for why:
+// Vercel serverless functions cap request bodies at ~4.5MB, which a
+// full-resolution photo can exceed). Returns the resulting public URL to
+// include as `imageUrl` in the recipe create/update payload.
+export const uploadRecipeImage = async (file: File): Promise<string> => {
+  const extension = file.name.includes(".") ? file.name.split(".").pop() : undefined;
+  const pathname = `recipe-images/${crypto.randomUUID()}${extension ? `.${extension}` : ""}`;
+
+  const blob = await upload(pathname, file, {
+    access: "public",
+    handleUploadUrl: "/api/recipes/image-upload",
+    contentType: file.type,
+  });
+
+  return blob.url;
 };

@@ -1,10 +1,10 @@
 "use client";
 
-import type { FormEvent, ReactElement } from "react";
+import type { ChangeEvent, FormEvent, ReactElement } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, GripVertical, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, GripVertical, ImageIcon, Save, Trash2, Upload } from "lucide-react";
 
 import { buttonVariants, Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,10 @@ import type { UnitFamily } from "@/lib/models/ingredient";
 import type { RecipeUnit } from "@/lib/models/recipe";
 import { useCreateRecipe } from "../hooks/useCreateRecipe";
 import { useUpdateRecipe } from "../hooks/useUpdateRecipe";
+import { useUploadRecipeImage } from "../hooks/useUploadRecipeImage";
+
+const acceptedImageTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const maxImageBytes = 5 * 1024 * 1024; // 5MB — matches app/api/recipes/image-upload/route.ts
 
 const presetTags = [
   "Breakfast",
@@ -165,10 +169,15 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
   const [rows, setRows] = useState<IngredientRow[]>(
     recipe?.ingredients.map(toIngredientRow) ?? [],
   );
+  const [imageUrl, setImageUrl] = useState<string | null>(recipe?.imageUrl ?? null);
+  const [imagePreview, setImagePreview] = useState<string | null>(recipe?.imageUrl ?? null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const createRecipe = useCreateRecipe();
   const updateRecipe = useUpdateRecipe();
+  const uploadImage = useUploadRecipeImage();
   const isSubmitting = createRecipe.isPending || updateRecipe.isPending;
 
   // Guards against a double-submit: `isSubmitting` only reflects the
@@ -229,6 +238,45 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
     setRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
   };
 
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    setImageError(null);
+    if (!acceptedImageTypes.includes(file.type)) {
+      setImageError("Only JPEG, PNG, WebP, or GIF images are supported.");
+      return;
+    }
+    if (file.size > maxImageBytes) {
+      setImageError("Image must be 5MB or smaller.");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const previousImageUrl = imageUrl;
+    setImagePreview(objectUrl);
+
+    uploadImage.mutate(file, {
+      onSuccess: (url) => {
+        setImageUrl(url);
+        setImagePreview(url);
+        URL.revokeObjectURL(objectUrl);
+      },
+      onError: (error) => {
+        setImageError(error.message);
+        setImagePreview(previousImageUrl);
+        URL.revokeObjectURL(objectUrl);
+      },
+    });
+  };
+
+  const handleRemoveImage = (): void => {
+    setImageUrl(null);
+    setImagePreview(null);
+    setImageError(null);
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     if (isSubmittingRef.current) return;
@@ -236,6 +284,10 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
 
     if (rows.length === 0) {
       setErrorMessage("Add at least one ingredient.");
+      return;
+    }
+    if (uploadImage.isPending) {
+      setErrorMessage("Wait for the image to finish uploading before saving.");
       return;
     }
 
@@ -250,6 +302,7 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
         quantity: Number(row.quantity),
         unit: row.unit,
       })),
+      imageUrl,
     };
 
     isSubmittingRef.current = true;
@@ -286,6 +339,56 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
         <div className="divide-y divide-border rounded-lg border border-border bg-card">
           <section className="space-y-4 p-6">
             <h2 className="text-base font-semibold text-foreground">Recipe Basics</h2>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Recipe Image</p>
+              <div className="relative flex aspect-[1.65/1] max-w-sm items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-secondary">
+                {imagePreview ? (
+                  // Vercel Blob's hostname is dynamic per project, so plain
+                  // <img> is used instead of next/image (which would need
+                  // that hostname allowlisted in next.config.ts ahead of
+                  // time) — see DECISIONS.md "Recipe image upload (Vercel
+                  // Blob)". The local blob: preview URL shown mid-upload
+                  // isn't a remote host next/image could optimize anyway.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img alt="" className="size-full object-cover" src={imagePreview} />
+                ) : (
+                  <ImageIcon className="size-10 text-muted-foreground/60" />
+                )}
+                {uploadImage.isPending && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground">
+                    Uploading...
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  accept={acceptedImageTypes.join(",")}
+                  className="hidden"
+                  onChange={handleImageSelect}
+                  ref={imageInputRef}
+                  type="file"
+                />
+                <Button
+                  disabled={uploadImage.isPending}
+                  onClick={() => imageInputRef.current?.click()}
+                  type="button"
+                  variant="outline"
+                >
+                  <Upload className="size-4" /> {imagePreview ? "Replace Image" : "Upload Image"}
+                </Button>
+                {imagePreview && (
+                  <button
+                    className="text-sm text-muted-foreground hover:text-destructive"
+                    onClick={handleRemoveImage}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              {imageError && <p className="text-xs text-destructive">{imageError}</p>}
+            </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-foreground" htmlFor="recipe-name">
@@ -428,7 +531,7 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
           <Link className={buttonVariants({ variant: "outline" })} href="/recipes">
             Cancel
           </Link>
-          <Button disabled={isSubmitting} type="submit">
+          <Button disabled={isSubmitting || uploadImage.isPending} type="submit">
             <Save className="size-4" /> Save Recipe
           </Button>
         </div>

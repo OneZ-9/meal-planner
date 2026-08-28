@@ -1,3 +1,88 @@
+## Recipe image upload (Vercel Blob)
+
+Added optional recipe images to Create/Edit Recipe (`recipe-form.tsx`),
+reversing the "No recipe image field or upload" deferral below — the user
+asked for it explicitly and named a storage approach (a repo-local
+`uploads/` folder, gitignored) to evaluate first. This was implemented once
+already, then fully reverted the same day when the user reconsidered
+whether it was worth it, then implemented again on request once that was
+resolved — see the "Reverted, then rebuilt" note at the end of this entry.
+
+- **Local-disk storage was rejected before writing any code.**
+  `DEPLOYMENT.md` targets Vercel (confirmed live — `.vercel` is already in
+  `.gitignore`), and Vercel's serverless functions run on an ephemeral,
+  effectively read-only filesystem outside `/tmp` — a file written to a
+  repo-relative `uploads/` folder at runtime would not reliably exist by
+  the time a later request (quite possibly a different container
+  instance) tried to read it back. This would work fine in `npm run dev`
+  and then silently break in production. Presented the user with four
+  options (Vercel Blob, dev-only local disk with a documented gap, base64
+  in MongoDB, or changing the deployment target); they picked **Vercel
+  Blob**.
+- **Client-side upload, not a server-proxied one.** `@vercel/blob`'s own
+  README documents two patterns: server upload (file passes through your
+  route, capped at Vercel's ~4.5MB request-body limit) and client upload
+  (file goes straight from the browser to Blob storage, up to 5TB). A
+  full-resolution phone photo can easily exceed 4.5MB, so this uses the
+  client pattern: `POST /api/recipes/image-upload` only authorizes the
+  upload via `handleUpload`/`onBeforeGenerateToken` from
+  `@vercel/blob/client` (checks `auth()`, constrains
+  `allowedContentTypes`/`maximumSizeInBytes`, requires the pathname to
+  start with `recipe-images/`); the actual bytes never touch this app's
+  server. `lib/api/recipes.ts`'s `uploadRecipeImage` calls
+  `@vercel/blob/client`'s `upload()` directly from `recipe-form.tsx`.
+  **Verified against this exact installed version** (`@vercel/blob@2.8.0`)
+  by reading `node_modules/@vercel/blob/dist/client.d.ts` rather than
+  relying on possibly-stale training-data knowledge of the package's API —
+  AGENTS.md's "this is not the [dependency] you know" warning applies to
+  any fast-moving package, not just Next.js itself.
+- **File constraints: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+  only, 5MB max**, enforced server-side via the token's
+  `allowedContentTypes`/`maximumSizeInBytes` (so Vercel Blob itself
+  rejects an oversized/wrong-type upload, not just client-side validation
+  that a crafted request could skip) and mirrored client-side in
+  `recipe-form.tsx` for immediate feedback before even starting an upload.
+- **`imageUrl: string | null` on `RecipeModel`, validated as `null` or an
+  `http(s)://` string ≤ 2000 chars** in `lib/recipeValidation.ts`. The
+  scheme check is cheap defense-in-depth against a crafted non-http(s)
+  value ending up in an `<img src>`, even though in practice the only
+  values ever set are either `null` or a URL this app's own upload route
+  just issued.
+- **Plain `<img>`, not `next/image`, everywhere a recipe image renders**
+  (`recipe-card.tsx`, `recipe-form.tsx`'s preview, the calendar's
+  `recipe-details-dialog.tsx`). Vercel Blob's hostname is
+  `<store-id>.public.blob.vercel-storage.com` where the store ID is
+  generated per-project — using `next/image` would mean hardcoding or
+  wildcarding that hostname in `next.config.ts` ahead of actually having a
+  store, and buys nothing here since Blob URLs aren't further
+  resizable/optimizable by Next's image loader the way same-origin assets
+  are.
+- **Old image cleanup is best-effort, not transactional**
+  (`lib/recipeImageStorage.ts`'s `deleteRecipeImageBestEffort`, called
+  from `PATCH`/`DELETE /api/recipes/[id]` after the Mongo write succeeds).
+  Same "blunt cascade" shape already accepted for the calendar-assignment
+  cascade — a failed `del()` leaves an orphaned Blob object rather than a
+  broken recipe, a low-cost, rare, and now explicitly accepted risk (see
+  KNOWN_ISSUES.md) rather than something worth wrapping in a saga/retry.
+- **Pathname scheme: `recipe-images/<uuid>.<original-extension>`**,
+  generated client-side via `crypto.randomUUID()`. No per-user
+  subdirectory — recipe images are served publicly by URL regardless of
+  who uploaded them (same as every other Blob-hosted asset), so there's no
+  access-control reason to shard by user, and every recipe (and therefore
+  every image) is already private-by-ownership at the database layer.
+- **Reverted, then rebuilt.** This feature was built, then the user asked
+  to fully undo it after concluding Vercel Blob's free-tier size limit
+  made it "not worth it" — that undo was done cleanly via `git checkout`
+  back to the pre-feature commit plus `npm uninstall`, verified with a
+  full green `tsc`/lint/build/test pass matching the exact pre-feature
+  file/test counts. On the next question, it turned out the "4.5MB" figure
+  was Vercel's *server-upload request-body* limit (irrelevant here, since
+  this design uploads client-side directly to Blob storage), not a
+  storage-size cap — once that was clarified, the user asked to rebuild
+  it, identically. Worth remembering if this comes up a third time: the
+  size-limit confusion is the likely recurring sticking point, not
+  anything about the implementation itself.
+
 ## Dashboard current-week metric definitions
 
 Replaced the Dashboard reference screenshot's sample values (`14`, `4`,
@@ -294,6 +379,9 @@ recorded here:
   (§27) for when one is absent. Recipe cards always render that
   placeholder; adding real image upload would need storage
   infrastructure nothing in the spec calls for.
+  **Superseded**: implemented on explicit request — see "Recipe image
+  upload (Vercel Blob)" above. The empty-placeholder state described here
+  is preserved as the fallback for recipes with no uploaded image.
 - **No separate recipe description field.** The Recipe Card mockup shows
   descriptive text under the title, but nothing in
   `MEAL_PLANNER_REQUIREMENTS.md`/ARCHITECTURE.md defines a free-text

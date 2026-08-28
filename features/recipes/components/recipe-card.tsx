@@ -28,8 +28,16 @@ const formatAddedDate = (isoDate: string): string =>
 
 export const RecipeCard = ({ recipe, onDelete }: RecipeCardProps): ReactElement => (
   <article className="overflow-hidden rounded-[10px] border border-border bg-card">
-    <div className="relative flex aspect-[1.65/1] items-center justify-center bg-secondary">
-      <ImageIcon className="size-10 text-muted-foreground/60" />
+    <div className="relative flex aspect-[1.65/1] items-center justify-center overflow-hidden bg-secondary">
+      {recipe.imageUrl ? (
+        // Vercel Blob's hostname is dynamic per project — see
+        // DECISIONS.md "Recipe image upload (Vercel Blob)" for why this is
+        // a plain <img> rather than next/image.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt="" className="size-full object-cover" src={recipe.imageUrl} />
+      ) : (
+        <ImageIcon className="size-10 text-muted-foreground/60" />
+      )}
       {recipe.prepTimeMinutes != null && (
         <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-card/90 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm">
           <Clock className="size-3 text-primary" /> {recipe.prepTimeMinutes}m
