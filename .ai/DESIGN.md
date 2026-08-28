@@ -563,6 +563,20 @@ The `100%` metric uses green to communicate success.
 
 Do not turn the metric cards into large analytics widgets.
 
+Metric values are live and scoped to the current Monday–Sunday week:
+
+- **Meals Planned**: number of occupied calendar slots this week.
+- **Recipes to Try**: number of recipes in the user's library that are not
+  assigned to any calendar slot this week (a recipe assigned more than once
+  is excluded once by recipe identity).
+- **Items to Buy**: number of unchecked lines in this week's generated
+  shopping list.
+- **Prep Ready**: checked shopping-list lines divided by total lines, rounded
+  to the nearest whole percent. An empty list displays `0%`.
+
+While these values load, retain the four-card layout and use a compact
+placeholder rather than showing the reference screenshot's sample numbers.
+
 ---
 
 # 14. Today's Highlights
@@ -596,6 +610,11 @@ Visual structure:
 
 The icon sits in a soft blue circular container.
 
+The recipe name is live: show the recipe assigned to today's `Dinner`
+calendar slot. If that slot is empty, show `not allocated yet` in
+`--color-error`/the semantic destructive text color. Do not fall back to the
+reference screenshot's sample recipe name.
+
 ### Missing
 
 Visual structure:
@@ -611,6 +630,18 @@ Missing state:
 - Light red/pink icon background.
 - Status label in secondary text.
 - Item name in dark text.
+
+This item is a live completeness check for today's three calendar slots,
+ordered `Breakfast`, `Lunch`, `Dinner`:
+
+- If any slots are empty, list their meal names followed by `is not allocated
+  yet` for one slot or `are not allocated yet` for multiple slots. Use the red
+  alert icon treatment and destructive text color.
+- If all three slots are assigned, show `3 meals already selected` with a
+  green check icon/text treatment.
+- While calendar data loads, preserve the card and show the same compact
+  placeholder used by the weekly metrics; do not imply either an error or
+  completion before data is available.
 
 ---
 
@@ -644,7 +675,7 @@ Examples:
                                               >
 
 [cart icon]      View Shopping List
-                 32 items remaining
+                 {unchecked items} remaining
                                               >
 
 [sparkle icon]   Auto-Generate Plan

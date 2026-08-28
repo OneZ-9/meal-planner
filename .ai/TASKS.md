@@ -12,7 +12,13 @@ refer to that plan.
       NextAuth credentials login and persisted JWT session, protected dashboard,
       post-login redirect, and sign-out. Per-user API isolation remains a
       required boundary for user-owned modules as those APIs are implemented.
-- [x] Dashboard page UI (placeholder data) + shared NavBar.
+- [x] Dashboard page UI + shared NavBar. "This Week's Plan" now uses live
+      current-week Calendar, Recipes, and Shopping List data for Meals Planned,
+      Recipes to Try, Items to Buy, and Prep Ready; reference-image sample
+      values remain only in the design documentation/example screenshot.
+      Today's Highlights also reads today's Calendar slots: Dinner shows the
+      assigned recipe or an unallocated warning, while Missing lists empty
+      Breakfast/Lunch/Dinner slots or confirms all three are selected.
 - [x] Repo pushed to GitHub, all branches live.
 
 ## Week 1 — in progress / pending

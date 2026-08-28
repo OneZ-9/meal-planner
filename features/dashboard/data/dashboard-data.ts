@@ -1,12 +1,5 @@
 import { CalendarDays, ShoppingCart, Sparkles } from "lucide-react";
 
-export const metrics = [
-  { value: "14", label: "Meals Planned", emphasized: true },
-  { value: "4", label: "Recipes to Try" },
-  { value: "32", label: "Items to Buy" },
-  { value: "100%", label: "Prep Ready", emphasized: true },
-] as const;
-
 export const actions = [
   {
     title: "Plan Next Week",
@@ -16,7 +9,7 @@ export const actions = [
   },
   {
     title: "View Shopping List",
-    description: "32 items remaining",
+    description: null,
     href: "/shopping-list",
     icon: ShoppingCart,
   },

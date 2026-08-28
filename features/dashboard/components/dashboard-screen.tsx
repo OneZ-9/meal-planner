@@ -1,16 +1,11 @@
 import type { ReactElement } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ChevronRight,
-  Heart,
-  PlusCircle,
-  Utensils,
-} from "lucide-react";
+import { Heart } from "lucide-react";
 import dashboardReference from "@/docs/design-reference/dashboard.png";
 import { AppNav } from "@/features/app-shell";
-import { actions, metrics, suggestions } from "../data/dashboard-data";
+import { suggestions } from "../data/dashboard-data";
+import { DashboardOverview } from "./dashboard-overview";
 
 export const DashboardScreen = (): ReactElement => (
   <div className="min-h-screen bg-background">
@@ -25,90 +20,7 @@ export const DashboardScreen = (): ReactElement => (
         </p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
-        <section
-          aria-labelledby="weekly-plan-heading"
-          className="rounded-lg border border-border bg-card p-5 shadow-[0_1px_3px_rgba(11,28,48,0.04)]"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <h2 id="weekly-plan-heading" className="text-base font-semibold">
-              This Week&apos;s Plan
-            </h2>
-            <span className="rounded-full bg-secondary px-3 py-1 text-[11px] text-muted-foreground">
-              Nov 12 - Nov 18
-            </span>
-          </div>
-          <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {metrics.map((metric) => (
-              <div
-                className="rounded-md border border-border bg-secondary px-2 py-4 text-center"
-                key={metric.label}
-              >
-                <dd
-                  className={`text-xl font-semibold ${"emphasized" in metric && metric.emphasized ? "text-primary" : "text-foreground"}`}
-                >
-                  {metric.value}
-                </dd>
-                <dt className="mt-1 text-[11px] text-muted-foreground">
-                  {metric.label}
-                </dt>
-              </div>
-            ))}
-          </dl>
-          <div className="mt-7 border-t border-border pt-5">
-            <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Today&apos;s Highlights
-            </h3>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex min-h-14 items-center gap-3 rounded-md border border-border bg-background px-3 py-2">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-                  <Utensils className="size-4" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Dinner</p>
-                  <p className="text-sm font-semibold">Lemon Herb Salmon</p>
-                </div>
-              </div>
-              <div className="flex min-h-14 items-center gap-3 rounded-md border border-border bg-background px-3 py-2">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-                  <AlertTriangle className="size-4" />
-                </span>
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Missing</p>
-                  <p className="text-sm font-semibold">Fresh Dill (1 bunch)</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <aside aria-label="Dashboard actions" className="space-y-3">
-          <Link
-            className="flex h-14 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30"
-            href="/recipes/new"
-          >
-            <PlusCircle className="size-[18px]" /> Create New Recipe
-          </Link>
-          {actions.map(({ title, description, href, icon: Icon }) => (
-            <Link
-              className="group flex min-h-16 items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition hover:border-primary/40 hover:bg-secondary focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/20"
-              href={href}
-              key={title}
-            >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
-                <Icon className="size-[18px]" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">{title}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {description}
-                </span>
-              </span>
-              <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          ))}
-        </aside>
-      </div>
+      <DashboardOverview />
 
       <section aria-labelledby="suggested-heading" className="mt-8">
         <div className="mb-3 flex items-center justify-between">

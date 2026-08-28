@@ -1,3 +1,38 @@
+## Dashboard current-week metric definitions
+
+Replaced the Dashboard reference screenshot's sample values (`14`, `4`,
+`32`, `100%`) with live values composed from the existing Calendar, Recipes,
+and Shopping List feature queries. The dashboard remains a Server Component
+shell (so `AppNav` cannot pull `@/auth`/Mongoose into a client bundle) and
+renders a dashboard-local Client Component + hook for the query composition,
+following the established feature split documented in FIXES.md.
+
+- **Meals Planned** counts occupied calendar slots, not distinct recipes,
+  because each assignment represents one planned meal.
+- **Recipes to Try** means recipes not assigned in the current week, not
+  recipes that have never been assigned in any historical week. The metric is
+  inside "This Week's Plan", and this definition can be derived from the
+  existing week-scoped Calendar boundary without adding a cross-week endpoint.
+  Repeated assignments of one recipe exclude that recipe only once.
+- **Items to Buy** counts unchecked generated shopping-list lines, matching
+  the Shopping List checklist's item model rather than summing ingredient
+  quantities. The action card's "items remaining" text uses the same count.
+- **Prep Ready** is `checked / total`, rounded to a whole percentage. An empty
+  list reports `0%` rather than `100%`, because no preparation has been
+  completed and the ratio otherwise has no denominator.
+- **Today's Highlights** uses the same current-week Calendar response and the
+  user's local `YYYY-MM-DD` date key. Dinner displays today's assigned dinner
+  recipe or red `not allocated yet`. Missing compares today's assignments to
+  the canonical `MEAL_SLOTS` order (Breakfast, Lunch, Dinner), lists any empty
+  slots in red, and displays green `3 meals already selected` only when all
+  three slots are occupied. This replaces both reference-image sample strings;
+  it does not infer missing ingredients from the shopping list because the
+  requested status is meal-slot completeness, owned by Calendar.
+
+No new dashboard API was added: the hook reuses the existing React Query keys
+and domain hooks, so calendar/checklist mutations continue to invalidate the
+same cached data the dashboard reads.
+
 ## Week navigation pill shows the date range, not a static "Today" label
 
 Both Calendar (`calendar-manager.tsx`) and Shopping List
