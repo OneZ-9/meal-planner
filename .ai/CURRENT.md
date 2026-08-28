@@ -14,6 +14,28 @@ rather than new modules.
 
 ## Recent work
 
+- Three small Calendar UX fixes, all on explicit request: (1) the recipe
+  details dialog (opened by clicking an assigned recipe chip) could
+  overflow the viewport on smaller screens with a recipe image + long
+  ingredient/instructions list, since only its inner content section was
+  height-capped, not the dialog as a whole — moved the cap to the outer
+  `DialogContent` (`max-h-[85vh] overflow-y-auto`) in
+  `features/calendar/components/recipe-details-dialog.tsx`. (1b) That
+  scroll container's visible scrollbar was then hidden on request via a
+  new `.scrollbar-hide` utility added to `app/globals.css` — scroll
+  behavior is unchanged, only the scrollbar's visibility. (2) Empty
+  calendar cells now show a low-opacity "Assign recipe" text label instead
+  of rendering fully blank, reversing DESIGN.md §28's original "no
+  placeholder affordance" rule in `features/calendar/components/
+  calendar-grid.tsx`. DESIGN.md §28 (spec + QA checklist) updated to match;
+  see DECISIONS.md for both entries. Not yet manually verified in a live
+  browser (no browser automation tool available, same limitation noted
+  throughout this file) — worth a quick click-through to confirm the
+  dialog scrolls correctly with a real long recipe and image.
+- Checked for the git-merge-conflict-markers issue this file's own history
+  describes recurring in past sessions — none found this session; `git
+  status` was clean and no `<<<<<<<`/`=======`/`>>>>>>>` markers exist
+  anywhere in the repo.
 - Fixed a second occurrence of literal unresolved git-merge conflict
   markers committed directly into this file's "Recent work" section (a
   nested `<<<<<<< HEAD` / `=======` / `<<<<<<< HEAD` / `>>>>>>> adeepa/dev`
@@ -419,6 +441,10 @@ reproduces — `npx vitest run` passes, see FIXES.md).
 
 ## Validation state
 
+- Calendar dialog max-height + "Assign recipe" empty-cell label:
+  `npx tsc --noEmit` and `npm run lint` both pass. Not manually exercised
+  in a live browser (no browser automation tool available, same limitation
+  noted throughout this file).
 - Recipe image upload: `npx tsc --noEmit`, `npm run lint`, `npm run build`,
   and `npx vitest run` (19 files, 147 tests) all pass. New coverage:
   `app/api/recipes/image-upload/route.test.ts` (auth gate, invalid-body

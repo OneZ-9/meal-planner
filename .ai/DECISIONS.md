@@ -1,3 +1,36 @@
+## Calendar empty-cell "Assign recipe" label
+
+Empty calendar cells now render a low-opacity "Assign recipe" text label
+(no icon) instead of the fully blank cell DESIGN.md §28 originally
+specified ("Do not render a placeholder icon or 'add meal' affordance
+unless a product requirement adds one"). Changed on explicit user request —
+a product requirement did add one. `features/calendar/components/
+calendar-grid.tsx`'s empty-cell `<button>` now has visible text content
+(`text-muted-foreground/50`) instead of being an invisible full-cell hit
+target; DESIGN.md §28 and its QA checklist item updated to match.
+
+## Recipe details dialog: capped height + scroll
+
+`features/calendar/components/recipe-details-dialog.tsx`'s `DialogContent`
+had no height cap — with a recipe image, header, and a long ingredient/
+instructions list, the dialog could exceed the viewport on smaller screens
+with no way to reach the content below the fold (the base `DialogContent`
+in `components/ui/dialog.tsx` doesn't constrain height, and the dialog only
+had an inner `max-h-[60vh] overflow-y-auto` around the ingredients/
+instructions section, not the image+header above it). Fixed by moving the
+height cap to the outer `DialogContent` (`max-h-[85vh] overflow-y-auto`)
+so the whole dialog — image, header, and body — scrolls as one unit within
+85% of the viewport height; the now-redundant inner scroll container was
+simplified to a plain `space-y-4` div. Follow-up on request: the visible
+scrollbar on that scroll container was hidden (scroll behavior unchanged,
+still keyboard/wheel/touch scrollable) via a new `.scrollbar-hide` utility
+in `app/globals.css` (`scrollbar-width: none` + `-ms-overflow-style: none`
++ a `::-webkit-scrollbar { display: none }` fallback for Safari/older
+Chrome), applied to the dialog's `DialogContent`. Not (yet) applied
+anywhere else in the app — scoped to this one dialog since that's what was
+asked for, but the utility is generic and reusable if another scrollable
+container needs the same treatment later.
+
 ## Recipe image upload (Vercel Blob)
 
 Added optional recipe images to Create/Edit Recipe (`recipe-form.tsx`),

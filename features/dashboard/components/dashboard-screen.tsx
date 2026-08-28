@@ -1,11 +1,8 @@
 import type { ReactElement } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
-import dashboardReference from "@/docs/design-reference/dashboard.png";
 import { AppNav } from "@/features/app-shell";
-import { suggestions } from "../data/dashboard-data";
 import { DashboardOverview } from "./dashboard-overview";
+import { SuggestedRecipes } from "./suggested-recipes";
 
 export const DashboardScreen = (): ReactElement => (
   <div className="min-h-screen bg-background">
@@ -34,29 +31,7 @@ export const DashboardScreen = (): ReactElement => (
             View All
           </Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {suggestions.map((suggestion) => (
-            <article
-              className="group relative aspect-[1.48/1] overflow-hidden rounded-lg border border-border bg-card [container-type:inline-size]"
-              key={suggestion.name}
-            >
-              <Image
-                alt={suggestion.name}
-                className={`absolute top-[-169.3cqw] h-auto w-[333.6cqw] max-w-none transition-transform duration-300 group-hover:scale-[1.01] ${suggestion.imageClass}`}
-                placeholder="blur"
-                priority
-                src={dashboardReference}
-              />
-              <button
-                aria-label={`Add ${suggestion.name} to favorites`}
-                className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground backdrop-blur-sm transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                type="button"
-              >
-                <Heart className="size-[18px]" />
-              </button>
-            </article>
-          ))}
-        </div>
+        <SuggestedRecipes />
       </section>
     </main>
   </div>
