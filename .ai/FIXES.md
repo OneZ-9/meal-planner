@@ -4,63 +4,67 @@
 > / Solution / Related. Skip one-off typos that won't happen again.
 
 ---
-### A recipe ends up with a "duplicate" ingredient (same name, twice)
+### Creating an ingredient inline (mid-recipe) saves two duplicate recipes
 **Symptom**: While creating/editing a recipe, using the inline "create new
-ingredient" flow (search finds no match → Create) and then saving, the
-recipe ends up referencing the same-named ingredient twice — visible as two
-identical-looking rows in the Create/Edit Recipe form, or as a repeated line
-when viewing the recipe elsewhere (e.g. `RecipeDetailsDialog` in the
-Calendar module, which lists `recipe.ingredients` keyed by `ingredientId`
-with no name-based dedup).
-**Cause**: A fast double-click (or Enter-then-click) on "Create ingredient"
-can fire the dialog's submit handler twice before React re-renders with
-`isSubmitting: true` and disables the button — the `disabled` prop only
-takes effect a tick *after* the click that triggered it, leaving a real
-window for two `POST /api/ingredients` requests. Each create gets a
-different `_id`, so `recipe-form.tsx`'s ingredient-row dedup (which checks
-`ingredientId`, correctly, since two different ingredients could coincide by
-name across users) can't recognize "two ingredient records with the same
-name" as the same thing. The database's unique index
-(`{userId,name}`) is the intended last line of defense, but relying on it
-alone to *silently* prevent the second write is fragile — it only turns the
-race into a 409 error timing-dependently; the real fix is not letting the
-double-request happen in the first place. The identical race exists on
-"Save Recipe" itself (a fast double-click could send two
-create/update-recipe requests).
-**Solution**: Added a synchronous double-submit guard using a `useRef`
-(not `useState` — state updates aren't visible until the next render, so
-they can't close this specific race window) in both
-`features/ingredients/components/ingredient-form-dialog.tsx` (its
-create/edit submit handlers) and `features/recipes/components/recipe-form.tsx`
-(`handleSubmit`). The ref is set `true` synchronously the instant a submit
-starts, checked at the top of the handler to reject a same-tick re-entrant
-call, and cleared once the mutation actually settles (success *or* error —
-so a legitimate retry after a failed submit still works). **Important**:
-refs must only be written inside effects or event handlers, never during
-render — the existing "adjust state during render" pattern in this
-codebase (e.g. `ingredient-form-dialog.tsx`'s `wasOpen` reset block) is
-specifically sanctioned for *state*; doing the same to a ref trips the
-`react-hooks/refs` ESLint rule and is unsafe under React's rendering
-model (a render can be discarded/retried). Use a `useEffect` keyed on the
-value you're reacting to instead.
-**Live-tested against the real Atlas cluster (this repro theory only
-partially confirmed)**: fired two genuinely concurrent
+ingredient" flow (search finds no match → Create) and clicking "Create
+ingredient"/Save in that popup — **not** a special double-click, just the
+normal single click that finishes the popup — results in **two duplicate
+recipes** being saved, not a duplicate ingredient. (An earlier pass at this
+entry incorrectly diagnosed the symptom as a duplicated *ingredient* row
+and chased a double-submit *race*, based on the report alone without a
+live repro; live-testing that race at the API level came back clean —
+see below — and the actual report, confirmed by the reporting dev, was
+recipe duplication. Leaving that section in for the record since the fix
+that resolved it touches the same code.)
+**Cause (best-supported theory — not re-derived from a live browser trace,
+but consistent with the confirmed fix)**: `IngredientFormDialog`'s popup
+content renders via `DialogPortal` (Base UI → `ReactDOM.createPortal`),
+so its `<form onSubmit={handleFormSubmit}>` is physically attached to
+`document.body`, *outside* `RecipeForm`'s own `<form onSubmit={handleSubmit}>`
+in the DOM. But it is still a descendant of `RecipeForm` in the **React
+component tree** (`RecipeForm` → `IngredientCombobox` → `IngredientFormDialog`),
+and React's documented portal behavior is that a fired event "propagate[s]
+to ancestors in the containing React tree, even if those elements are not
+ancestors in the DOM tree." `handleFormSubmit` called `event.preventDefault()`
+but never `event.stopPropagation()`, so the "submit" event could continue
+bubbling — through the React tree, not the DOM tree — up to `RecipeForm`'s
+own `<form onSubmit={handleSubmit}>`, triggering a recipe save at the exact
+moment the ingredient popup was submitted (likely incomplete/premature,
+since ingredient creation is async and the new row isn't in `rows` yet).
+The user's later, real "Save Recipe" click then saves a second, complete
+recipe — two recipes saved from one recipe-creation session.
+**Solution (confirmed working by the reporting dev)**: The synchronous
+double-submit guard added to both dialogs — a `useRef` (not `useState`;
+state updates aren't visible until the next render, so they can't close a
+same-tick re-entrant call) set `true` the instant a submit starts, checked
+at the top of the handler, and cleared via `useEffect` once the mutation
+settles (success *or* error) — is what's currently in the codebase and is
+confirmed to have resolved this:
+`features/ingredients/components/ingredient-form-dialog.tsx` (create/edit
+submit handlers) and `features/recipes/components/recipe-form.tsx`
+(`handleSubmit`). **Refs must only be written inside effects or event
+handlers, never during render** — the existing "adjust state during
+render" pattern in this codebase (e.g. `ingredient-form-dialog.tsx`'s
+`wasOpen` reset block) is specifically sanctioned for *state*; doing the
+same to a ref trips the `react-hooks/refs` ESLint rule and is unsafe under
+React's rendering model (a render can be discarded/retried). Use a
+`useEffect` keyed on the value you're reacting to instead.
+**A more surgical fix at the actual source, not yet applied**: adding
+`event.stopPropagation()` alongside `event.preventDefault()` in
+`ingredient-form-dialog.tsx`'s `handleFormSubmit`/`handleConfirmEdit` would
+stop the submit event from ever reaching `RecipeForm`'s outer form in the
+first place, addressing the cause directly rather than only guarding
+against its symptom. Worth doing if this (or a variant of it — e.g. a
+future dialog nested inside a different outer form) resurfaces; not applied
+here since the ref guard already resolved the reported behavior.
+**Live-tested against the real Atlas cluster (confirms a different layer is
+solid, not the cause of this bug)**: fired two genuinely concurrent
 `POST /api/ingredients` requests for the same new name — the app-level
 `findOne`-then-`create` check plus the DB's unique index correctly produced
 exactly one `201` and one `409`, with only one document ever persisted. A
 full create-ingredient → create-recipe → fetch-recipe round trip also came
-back clean (single ingredient, single recipe, no duplication) — see
-`.ai/CURRENT.md`'s "Bugfix" entry for the exact reproduction commands. So
-the specific "two Ingredient documents with the same name" failure mode
-described above did **not** reproduce server-side in this environment; the
-DB-level protection held under a direct race test. The double-submit guard
-is still a real, worthwhile fix (it prevents the double request from firing
-at all, rather than depending on 409-timing luck), but it should be treated
-as a defensive hardening pass, not a confirmed root-cause fix, until someone
-can reproduce the original report with a browser open (Network tab) to see
-what actually differs — e.g. a stale/duplicated item rendered from React
-Query cache, or a browser-specific double-fire this environment's manual
-`curl` race couldn't trigger.
+back clean. This rules out "two Ingredient documents with the same name"
+as a live concern, independent of the recipe-duplication bug above.
 **Related**: DECISIONS.md "Recipe module (US-2/US-4)" (the id-based
 ingredient-row dedup), the ingredient duplicate-check entries in
 DECISIONS.md/KNOWN_ISSUES.md.
