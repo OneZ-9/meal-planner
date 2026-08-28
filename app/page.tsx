@@ -1,17 +1,16 @@
-import type { ReactElement } from "react";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
-  title: "Meal Planner + Shopping List Generator",
-  description: "Plan your meals and generate shopping lists with ease",
+  title: "MealPrep Pro",
+  description: "Plan your meals, shop smarter.",
 };
 
-const HomePage = (): ReactElement => {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <h1>Meal Planner</h1>
-    </main>
-  );
+const HomePage = async (): Promise<never> => {
+  const session = await auth();
+  redirect(session?.user ? "/dashboard" : "/login");
 };
 
 export default HomePage;

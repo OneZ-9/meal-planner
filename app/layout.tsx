@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Meal Planner + Shopping List Generator",
-  description: "Plan your meals and generate shopping lists with ease",
+  title: "MealPrep Pro",
+  description: "Plan your meals, shop smarter.",
 };
 
 const RootLayout = ({ children }: LayoutProps<"/">): ReactElement => {
