@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { IngredientModel } from "@/lib/models/ingredient";
 import { RecipeModel } from "@/lib/models/recipe";
 import { CalendarEntryModel } from "@/lib/models/calendarEntry";
+import { del } from "@vercel/blob";
 import { DELETE, GET, PATCH } from "./route";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
@@ -23,12 +24,14 @@ vi.mock("@/lib/models/ingredient", () => ({
 vi.mock("@/lib/models/calendarEntry", () => ({
   CalendarEntryModel: { deleteMany: vi.fn() },
 }));
+vi.mock("@vercel/blob", () => ({ del: vi.fn() }));
 
 const mockedAuth = vi.mocked(auth as () => Promise<Session | null>);
 const mockedFindOne = vi.mocked(RecipeModel.findOne);
 const mockedFindOneAndDelete = vi.mocked(RecipeModel.findOneAndDelete);
 const mockedIngredientFind = vi.mocked(IngredientModel.find);
 const mockedCalendarDeleteMany = vi.mocked(CalendarEntryModel.deleteMany);
+const mockedDel = vi.mocked(del);
 
 const asSession = (userId: string): Session => ({
   user: { id: userId, email: "chef@example.com" },
@@ -62,6 +65,7 @@ const buildRecipeDoc = (overrides: Record<string, unknown> = {}) => ({
   tags: ["Dinner"],
   instructions: "Cook it.",
   ingredients: [{ ingredientId, quantity: 2, unit: "tbsp" }],
+  imageUrl: null,
   createdAt: new Date("2024-01-01T00:00:00.000Z"),
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
   save: vi.fn().mockResolvedValue(undefined),
@@ -189,6 +193,38 @@ describe("PATCH /api/recipes/[id]", () => {
     expect(recipe.servings).toBe(3);
     expect(body.servings).toBe(3);
   });
+
+  it("deletes the old image from Blob storage when it's replaced", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    const recipe = buildRecipeDoc({ imageUrl: "https://blob.example/old.jpg" });
+    mockedFindOne.mockResolvedValue(recipe as never);
+    mockIngredientFindChain([
+      { id: ingredientId, name: "Sugar", unitFamily: "weight" },
+    ]);
+
+    await PATCH(
+      buildRequest({ ...validPatchBody, imageUrl: "https://blob.example/new.jpg" }),
+      buildContext(validId),
+    );
+
+    expect(mockedDel).toHaveBeenCalledWith("https://blob.example/old.jpg");
+  });
+
+  it("does not touch Blob storage when the image is unchanged", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    const recipe = buildRecipeDoc({ imageUrl: "https://blob.example/same.jpg" });
+    mockedFindOne.mockResolvedValue(recipe as never);
+    mockIngredientFindChain([
+      { id: ingredientId, name: "Sugar", unitFamily: "weight" },
+    ]);
+
+    await PATCH(
+      buildRequest({ ...validPatchBody, imageUrl: "https://blob.example/same.jpg" }),
+      buildContext(validId),
+    );
+
+    expect(mockedDel).not.toHaveBeenCalled();
+  });
 });
 
 describe("DELETE /api/recipes/[id]", () => {
@@ -246,5 +282,25 @@ describe("DELETE /api/recipes/[id]", () => {
     await DELETE(buildRequest(), buildContext(validId));
 
     expect(mockedCalendarDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("deletes the recipe's image from Blob storage when it had one", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockedFindOneAndDelete.mockResolvedValue(
+      buildRecipeDoc({ imageUrl: "https://blob.example/old.jpg" }) as never,
+    );
+
+    await DELETE(buildRequest(), buildContext(validId));
+
+    expect(mockedDel).toHaveBeenCalledWith("https://blob.example/old.jpg");
+  });
+
+  it("does not call Blob storage when the deleted recipe had no image", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockedFindOneAndDelete.mockResolvedValue(buildRecipeDoc() as never);
+
+    await DELETE(buildRequest(), buildContext(validId));
+
+    expect(mockedDel).not.toHaveBeenCalled();
   });
 });

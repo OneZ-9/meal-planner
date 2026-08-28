@@ -62,7 +62,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     return NextResponse.json({ message: validation.message }, { status: 400 });
   }
 
-  const { name, servings, prepTimeMinutes, tags, instructions, ingredients } =
+  const { name, servings, prepTimeMinutes, tags, instructions, ingredients, imageUrl } =
     validation.values;
 
   await connectDB();
@@ -86,6 +86,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     tags,
     instructions,
     ingredients,
+    imageUrl,
     userId: session.user.id,
   });
 

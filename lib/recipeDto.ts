@@ -19,6 +19,7 @@ export type RecipeDTO = {
   tags: string[];
   instructions: string;
   ingredients: RecipeIngredientDTO[];
+  imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -52,6 +53,7 @@ export const toRecipeDTO = (
       unit: entry.unit,
     };
   }),
+  imageUrl: recipe.imageUrl,
   createdAt: recipe.createdAt.toISOString(),
   updatedAt: recipe.updatedAt.toISOString(),
 });

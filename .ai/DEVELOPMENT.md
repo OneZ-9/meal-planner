@@ -22,6 +22,7 @@ requires a real `MONGODB_URI`.
 | `MONGODB_URI` | any API route / real auth | MongoDB Atlas connection string. Placeholder value lets the app boot for UI-only work but any DB call will throw. |
 | `AUTH_SECRET` | auth                      | Required outside Auth.js development fallback; generate with `openssl rand -base64 32`.                           |
 | `AUTH_URL`    | auth                      | Optional locally (`http://localhost:3000`); set to the canonical deployed URL in production.                      |
+| `BLOB_READ_WRITE_TOKEN` | recipe image upload | Vercel Blob read-write token. Create a Blob store under the Vercel dashboard's Storage tab (needs a Vercel project linked, even for local dev), or run `vercel env pull .env.local` once one exists. Without it, recipe create/edit still works — the image upload button will just fail with an error toast; nothing else depends on this var. |
 
 ## Commands
 

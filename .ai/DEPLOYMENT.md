@@ -17,10 +17,15 @@ extra config beyond environment variables.
 2. Set environment variables in Vercel project settings (Production +
    Preview): `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (set to the
    deployed domain, not localhost).
-3. Set the production branch to `main`. `dev` and `[developer]/dev` branches
+3. Create a Vercel Blob store (Storage tab) and connect it to this project
+   — this provisions `BLOB_READ_WRITE_TOKEN` into the project's environment
+   variables automatically (recipe image upload, see DECISIONS.md "Recipe
+   image upload (Vercel Blob)"). Without this step, recipe create/edit
+   still works, but uploading an image will fail.
+4. Set the production branch to `main`. `dev` and `[developer]/dev` branches
    get automatic Vercel Preview deployments on push — useful for review
    without merging first.
-4. First deploy: push to `main` (or trigger manually from Vercel
+5. First deploy: push to `main` (or trigger manually from Vercel
    dashboard) and confirm the build succeeds.
 
 ## Verification after deploy
@@ -32,6 +37,9 @@ extra config beyond environment variables.
       measure.
 - [ ] Confirm `NEXTAUTH_URL` matches the actual deployed URL (mismatches
       here are the most common cause of auth breaking only in production).
+- [ ] Upload a recipe image on Create/Edit Recipe and confirm it renders on
+      the Recipe Library card afterward (confirms the Blob store is
+      actually connected, not just that `BLOB_READ_WRITE_TOKEN` is set).
 
 ## Rollback
 
