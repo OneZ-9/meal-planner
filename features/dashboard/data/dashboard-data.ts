@@ -20,9 +20,3 @@ export const actions = [
     icon: Sparkles,
   },
 ] as const;
-
-export const suggestions = [
-  { name: "Roasted vegetable grain bowl", imageClass: "left-[-8.8cqw]" },
-  { name: "Tomato soup with grilled cheese", imageClass: "left-[-115cqw]" },
-  { name: "Crunchy edamame noodle salad", imageClass: "left-[-221.2cqw]" },
-] as const;

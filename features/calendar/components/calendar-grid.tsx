@@ -79,16 +79,14 @@ export const CalendarGrid = ({
                     onView={() => onViewRecipe(entry)}
                   />
                 ) : (
-                  // DESIGN.md section 28: empty cells render blank, with no
-                  // placeholder icon or "add meal" affordance — the button
-                  // fills the cell so it's clickable, but only shows a subtle
-                  // background on hover/focus rather than any visible icon.
                   <button
                     aria-label={`Assign a recipe to ${mealSlotLabels[mealSlot]} on ${dateLabel}`}
-                    className="h-full w-full rounded-md transition hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex h-full w-full items-center justify-center rounded-md text-[11px] text-muted-foreground/50 transition hover:bg-secondary hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => onCellClick(dateKey, dateLabel, mealSlot)}
                     type="button"
-                  />
+                  >
+                    Assign recipe
+                  </button>
                 )}
               </div>
             );

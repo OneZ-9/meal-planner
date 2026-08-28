@@ -23,6 +23,14 @@ export type CalendarAssignmentInput = {
   recipeId: string;
 };
 
+export type FrequentRecipeDTO = {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  prepTimeMinutes: number | null;
+  count: number;
+};
+
 const parseErrorMessage = async (response: Response): Promise<string> => {
   const body = await response.json().catch(() => null);
   return (
@@ -59,4 +67,13 @@ export const removeCalendarAssignment = async (id: string): Promise<void> => {
   if (!response.ok) {
     throw new Error(await parseErrorMessage(response));
   }
+};
+
+export const fetchFrequentRecipes = async (): Promise<FrequentRecipeDTO[]> => {
+  const response = await fetch("/api/calendar/frequent-recipes");
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response));
+  }
+  const body: { items: FrequentRecipeDTO[] } = await response.json();
+  return body.items;
 };
