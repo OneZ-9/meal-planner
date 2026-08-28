@@ -9,9 +9,11 @@ npm run dev                  # http://localhost:3000
 ```
 
 Root `/` redirects to `/login`. `/dashboard` and every other `(dashboard)`
-route currently render on placeholder data and do NOT require a real
-MongoDB connection — useful for pure UI work. Anything hitting
-`app/api/*` (recipe save, login, etc.) does require a real `MONGODB_URI`.
+route is protected. The Dashboard now reads live Calendar, Recipes, and
+Shopping List APIs for its current-week metrics and today's highlights, so it
+requires a working `MONGODB_URI`; it is no longer a placeholder-only UI route.
+Anything hitting `app/api/*` (recipe save, login, dashboard summaries, etc.)
+requires a real `MONGODB_URI`.
 
 ## Environment variables
 
