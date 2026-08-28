@@ -29,6 +29,12 @@ const mockRecipeSelectChain = (docs: unknown[]): void => {
   mockedRecipeFind.mockReturnValue({ select: vi.fn().mockResolvedValue(docs) } as never);
 };
 
+// The route builds a real `Types.ObjectId` from the session user id (for the
+// aggregation `$match`), so — unlike other route tests that mock the model
+// entirely — this needs an actual 24-char hex string, not a placeholder like
+// "user-1".
+const userId = new Types.ObjectId().toString();
+
 describe("GET /api/calendar/frequent-recipes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,7 +49,7 @@ describe("GET /api/calendar/frequent-recipes", () => {
   });
 
   it("returns an empty list when the user has no calendar history", async () => {
-    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockedAuth.mockResolvedValue(asSession(userId));
     mockedAggregate.mockResolvedValue([]);
 
     const response = await GET();
@@ -56,7 +62,7 @@ describe("GET /api/calendar/frequent-recipes", () => {
   it("returns the top recipes by assignment count, most-used first", async () => {
     const recipeId1 = new Types.ObjectId();
     const recipeId2 = new Types.ObjectId();
-    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockedAuth.mockResolvedValue(asSession(userId));
     mockedAggregate.mockResolvedValue([
       { _id: recipeId1, count: 5 },
       { _id: recipeId2, count: 2 },
@@ -100,7 +106,7 @@ describe("GET /api/calendar/frequent-recipes", () => {
   it("skips a recipe that no longer exists (e.g. deleted) without erroring", async () => {
     const recipeId1 = new Types.ObjectId();
     const recipeId2 = new Types.ObjectId();
-    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockedAuth.mockResolvedValue(asSession(userId));
     mockedAggregate.mockResolvedValue([
       { _id: recipeId1, count: 3 },
       { _id: recipeId2, count: 1 },

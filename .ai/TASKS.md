@@ -20,6 +20,10 @@ refer to that plan.
       assigned recipe or an unallocated warning, while Missing lists empty
       Breakfast/Lunch/Dinner slots or confirms all three are selected.
 - [x] Repo pushed to GitHub, all branches live.
+- [x] Dashboard "Suggested for You" wired to live data — top 3
+      most-frequently-assigned recipes across the user's whole calendar
+      history, via new `GET /api/calendar/frequent-recipes`. Replaced the
+      static mockup and its non-functional favorite-heart button.
 
 ## Week 1 — in progress / pending
 
