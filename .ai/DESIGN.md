@@ -1068,7 +1068,7 @@ A single card (white surface, 1px border, rounded corners) contains the full wee
 - Header row: `--color-surface-muted` background, weekday abbreviation (bold, small) stacked over the day-of-month number (regular, small, secondary text).
 - Leftmost column: meal-slot labels (`Breakfast`, `Lunch`, `Dinner`), narrower than the day columns, secondary text.
 - Grid lines: `1px` `--color-border` between every row and column.
-- Empty cells: blank, `--color-surface`. Do not render a placeholder icon or "add meal" affordance unless a product requirement adds one — the reference shows plain empty cells.
+- Empty cells: `--color-surface`, with a low-opacity "Assign recipe" text label (no icon) centered in the cell as a clickable affordance — added on explicit product request, superseding the original reference's plain empty cells. See DECISIONS.md "Calendar empty-cell 'Assign recipe' label".
 
 ## Meal chip
 
@@ -1607,7 +1607,7 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] Prev/Today/Next controls are grouped top-right.
 - [ ] Grid has 7 day columns and Breakfast/Lunch/Dinner rows.
 - [ ] Meal chips use the primary-soft background, not the metric-card blue.
-- [ ] Empty cells render blank with no placeholder content.
+- [ ] Empty cells show a low-opacity "Assign recipe" text label, no icon.
 
 ## Create Recipe
 
