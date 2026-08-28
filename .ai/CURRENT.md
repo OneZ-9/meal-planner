@@ -16,6 +16,23 @@ new modules.
 
 ## Recent work
 
+<<<<<<< HEAD
+- Replaced the Dashboard's hard-coded "This Week's Plan" values with live
+  current-week data while preserving the `docs/design-reference/dashboard.png`
+  layout. `features/dashboard/components/dashboard-screen.tsx` remains the
+  Server Component shell; the new dashboard-local `DashboardOverview` Client
+  Component and `useDashboardSummary` hook compose the existing Calendar,
+  Recipes, and Shopping List feature queries. Meals Planned counts occupied
+  slots; Recipes to Try counts library recipes not assigned this week; Items
+  to Buy counts unchecked generated-list lines; Prep Ready is the rounded
+  checked/total percentage (`0%` for an empty list). The week pill and the
+  Shopping List action's "items remaining" text are dynamic too. Today's
+  Highlights now uses today's Calendar entries as well: Dinner shows its
+  assigned recipe or red `not allocated yet`; Missing lists unassigned
+  Breakfast/Lunch/Dinner slots in red, or green `3 meals already selected`
+  when today's three slots are filled. See DECISIONS.md "Dashboard
+  current-week metric definitions".
+=======
 Investigating a reported "recipe saves with a duplicate ingredient" issue
 (from another dev) on top of the completed US-1 auth, Ingredients, Recipes,
 and Calendar work. Applied a defensive double-submit-guard fix; **root
@@ -63,6 +80,7 @@ cause not confirmed** — see below.
   or exact repro steps next time it happens, since a live server-side race
   test couldn't trigger it. See FIXES.md for the full writeup.
 
+>>>>>>> origin/dev
 - Changed the Calendar and Shopping List week-nav control on request: the
   middle pill now shows the current week's date range (e.g. "Oct 23 – Oct
   29, 2023") instead of a static "Today" label, and the separate
@@ -374,6 +392,15 @@ modules:
 
 ## Validation state
 
+- Dashboard live metrics/highlights: `npx tsc --noEmit`, `npm run lint`,
+  `npm run build`, and `npx vitest run` all pass (18 files, 136 tests). Focused
+  coverage in `features/dashboard/lib/dashboard-summary.test.ts` verifies
+  occupied-slot counting, distinct unassigned recipes, unchecked-item totals,
+  percentage rounding, the empty-list `0%` rule, today's dinner lookup,
+  missing-dinner handling, ordered missing slots, and the all-three-selected
+  state. Visual browser QA could not be run: the local app was available at
+  `http://localhost:3000`, but no in-app or extension browser connection was
+  available in this session.
 - Shopping List module: `npx tsc --noEmit`, `npm run lint`, `npm run
   build`, and `npx vitest run` (17 files, 130 tests) all pass. New
   coverage: `lib/unitConversion.test.ts` (reproduces the spec's verified
@@ -431,6 +458,3 @@ modules:
   tool (chromium-cli/Playwright/Puppeteer) is available in this
   environment. Worth a manual click-through in a real browser before
   considering this fully done.
-- Shopping-List API routes still don't exist yet (not a stub — never
-  scaffolded on this branch; see git history). Recipe and Calendar routes
-  are both now implemented.
