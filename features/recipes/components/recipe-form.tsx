@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, GripVertical, Save, Trash2 } from "lucide-react";
@@ -171,6 +171,22 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
   const updateRecipe = useUpdateRecipe();
   const isSubmitting = createRecipe.isPending || updateRecipe.isPending;
 
+  // Guards against a double-submit: `isSubmitting` only reflects the
+  // in-flight mutation after a re-render, a tick after the click that
+  // started it — a fast double-click on "Save Recipe" can fire this
+  // handler twice before the button's `disabled` state lands, sending two
+  // create/update requests. A ref closes that window synchronously (state
+  // wouldn't: both calls would still see the pre-update value). Reset once
+  // the mutation actually settles, success or error, so a legitimate retry
+  // after a failed save isn't permanently blocked. Refs must only be
+  // written in effects/handlers, never during render.
+  const isSubmittingRef = useRef(false);
+  useEffect(() => {
+    if (!isSubmitting) {
+      isSubmittingRef.current = false;
+    }
+  }, [isSubmitting]);
+
   const toggleTag = (tag: string): void => {
     setTags((current) =>
       current.includes(tag) ? current.filter((existing) => existing !== tag) : [...current, tag],
@@ -215,6 +231,7 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
+    if (isSubmittingRef.current) return;
     setErrorMessage(null);
 
     if (rows.length === 0) {
@@ -235,6 +252,7 @@ export const RecipeForm = ({ mode, recipe }: RecipeFormProps): ReactElement => {
       })),
     };
 
+    isSubmittingRef.current = true;
     const onError = (error: Error): void => setErrorMessage(error.message);
     const onSuccess = (): void => router.push("/recipes");
 

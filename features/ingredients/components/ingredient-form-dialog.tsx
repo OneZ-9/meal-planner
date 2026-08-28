@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactElement } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +77,37 @@ export const IngredientFormDialog = ({
   );
   const [showEditWarning, setShowEditWarning] = useState(false);
 
+  // Guards against a double-submit: `isSubmitting` (the `disabled` prop
+  // driving the button below) only reflects the in-flight mutation after a
+  // re-render, which lands a tick *after* the click that started it — a
+  // fast double-click or Enter-then-click can fire this handler twice
+  // before that re-render happens. A ref is checked/set synchronously
+  // within the same handler call, closing that window (state wouldn't:
+  // both calls would still see the pre-update value). For a "create new
+  // ingredient" submit specifically, a second request that slips through
+  // creates a second Ingredient document with the same name — a different
+  // id from the first, so nothing downstream (e.g. the recipe-form
+  // ingredient-row dedup, which compares ids) can recognize it as a
+  // duplicate. See FIXES.md.
+  const isSubmittingRef = useRef(false);
+
+  // Clears the guard once the parent's mutation actually settles (success
+  // *or* error — e.g. a 409 conflict, which keeps the dialog open so the
+  // user can retry) or the dialog closes, so a legitimate resubmit isn't
+  // permanently blocked. Refs must only be written in effects/handlers, not
+  // during render (the "adjust state during render" pattern below is for
+  // *state*, not refs — see the react-hooks/refs rule).
+  useEffect(() => {
+    if (!isSubmitting) {
+      isSubmittingRef.current = false;
+    }
+  }, [isSubmitting]);
+  useEffect(() => {
+    if (!open) {
+      isSubmittingRef.current = false;
+    }
+  }, [open]);
+
   // Reset the form fields whenever the dialog transitions from closed to
   // open, so reopening for a different (or the same) ingredient never shows
   // stale values from a previous, possibly-cancelled edit. Adjusting state
@@ -109,10 +140,14 @@ export const IngredientFormDialog = ({
       setShowEditWarning(true);
       return;
     }
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     onSubmit(buildValues());
   };
 
   const handleConfirmEdit = (): void => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setShowEditWarning(false);
     onSubmit(buildValues());
   };
