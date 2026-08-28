@@ -16,6 +16,13 @@ new modules.
 
 ## Recent work
 
+- Added a confirmation dialog to the shared app-shell sign-out control. The
+  header button now asks "Are you sure you want to sign out?" and offers
+  Cancel / Sign out actions; the actual Auth.js sign-out remains a Server
+  Action and still redirects to `/login`. The client-only dialog is isolated
+  in `features/app-shell/components/sign-out-control.tsx` so `@/auth` and its
+  server dependencies stay out of the browser bundle.
+
 <<<<<<< HEAD
 - Replaced the Dashboard's hard-coded "This Week's Plan" values with live
   current-week data while preserving the `docs/design-reference/dashboard.png`
@@ -358,7 +365,8 @@ modules:
    manually exercise registration/login against the intended Atlas database.
 2. Manual click-through in a live browser (no browser automation tool
    available in this environment, same limitation noted throughout this
-   file) — this has never been done for: the recipe delete cascade (both
+   file) — verify the new sign-out confirmation's Cancel and Sign out paths;
+   this has also never been done for: the recipe delete cascade (both
    with and without calendar assignments), and the entire Shopping List
    screen (week nav, checkbox toggling incl. optimistic-update rollback on
    a failed request, "Clear Checked"/"Check All", the empty-state message
@@ -392,6 +400,11 @@ modules:
 
 ## Validation state
 
+- Sign-out confirmation: `npx tsc --noEmit`, `npm run lint`, and `npm run
+  build` pass. The production build confirms the Server Action can be passed
+  into the isolated Client Component without pulling server-only auth/database
+  dependencies into the browser bundle. Manual authenticated browser QA is
+  still pending.
 - Dashboard live metrics/highlights: `npx tsc --noEmit`, `npm run lint`,
   `npm run build`, and `npx vitest run` all pass (18 files, 136 tests). Focused
   coverage in `features/dashboard/lib/dashboard-summary.test.ts` verifies
