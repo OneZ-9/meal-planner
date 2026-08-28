@@ -49,6 +49,7 @@ const buildRecipeDoc = (overrides: Record<string, unknown> = {}) => ({
   tags: ["Dinner"],
   instructions: "Cook it.",
   ingredients: [{ ingredientId, quantity: 2, unit: "tbsp" }],
+  imageUrl: null,
   createdAt: new Date("2024-01-01T00:00:00.000Z"),
   updatedAt: new Date("2024-01-01T00:00:00.000Z"),
   ...overrides,
@@ -169,6 +170,7 @@ describe("POST /api/recipes", () => {
       tags: ["Dinner"],
       instructions: "Cook it.",
       ingredients: [{ ingredientId, quantity: 2, unit: "tbsp" }],
+      imageUrl: null,
       userId: "user-1",
     });
     expect(body.id).toBe("recipe-1");

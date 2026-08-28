@@ -12,6 +12,7 @@ import {
 } from "@/lib/recipeIngredients";
 import { RecipeModel } from "@/lib/models/recipe";
 import { CalendarEntryModel } from "@/lib/models/calendarEntry";
+import { deleteRecipeImageBestEffort } from "@/lib/recipeImageStorage";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -72,7 +73,7 @@ export const PATCH = async (
     return NextResponse.json({ message: validation.message }, { status: 400 });
   }
 
-  const { name, servings, prepTimeMinutes, tags, instructions, ingredients } =
+  const { name, servings, prepTimeMinutes, tags, instructions, ingredients, imageUrl } =
     validation.values;
 
   await connectDB();
@@ -93,13 +94,22 @@ export const PATCH = async (
     );
   }
 
+  const previousImageUrl = recipe.imageUrl;
+
   recipe.name = name;
   recipe.servings = servings;
   recipe.prepTimeMinutes = prepTimeMinutes;
   recipe.tags = tags;
   recipe.instructions = instructions;
   recipe.ingredients = ingredients;
+  recipe.imageUrl = imageUrl;
   await recipe.save();
+
+  // Clean up the replaced/removed image only after the save succeeds, and
+  // only if it actually changed — never delete a still-in-use blob.
+  if (previousImageUrl && previousImageUrl !== imageUrl) {
+    await deleteRecipeImageBestEffort(previousImageUrl);
+  }
 
   return NextResponse.json(toRecipeDTO(recipe, ingredientLookup));
 };
@@ -137,6 +147,7 @@ export const DELETE = async (
   }
 
   await CalendarEntryModel.deleteMany({ userId: session.user.id, recipeId: id });
+  await deleteRecipeImageBestEffort(deleted.imageUrl);
 
   return new NextResponse(null, { status: 204 });
 };

@@ -15,6 +15,7 @@ export type RecipeInputValues = {
   tags: string[];
   instructions: string;
   ingredients: RecipeIngredientInputValues[];
+  imageUrl: string | null;
 };
 
 export type RecipeInputValidation =
@@ -153,8 +154,24 @@ export const validateRecipeInput = (input: unknown): RecipeInputValidation => {
     ingredients.push({ ingredientId, quantity, unit: unit as RecipeUnit });
   }
 
+  // Always a Vercel Blob URL produced by our own upload endpoint (see
+  // app/api/recipes/image-upload/route.ts), never a client-supplied path —
+  // restricting the scheme is cheap defense-in-depth against a crafted
+  // non-http(s) value ending up in an `<img src>`.
+  let imageUrl: string | null = null;
+  if (candidate.imageUrl !== undefined && candidate.imageUrl !== null) {
+    if (
+      typeof candidate.imageUrl !== "string" ||
+      !/^https?:\/\//.test(candidate.imageUrl) ||
+      candidate.imageUrl.length > 2000
+    ) {
+      return { success: false, message: "imageUrl must be a valid http(s) URL." };
+    }
+    imageUrl = candidate.imageUrl;
+  }
+
   return {
     success: true,
-    values: { name, servings, prepTimeMinutes, tags, instructions, ingredients },
+    values: { name, servings, prepTimeMinutes, tags, instructions, ingredients, imageUrl },
   };
 };

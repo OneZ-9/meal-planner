@@ -344,11 +344,19 @@ Recipe
 │
 ├── name
 ├── servings
+├── imageUrl (optional)
 └── ingredients
     ├── ingredientId
     ├── quantity
     └── unit
 ```
+
+`imageUrl`, when set, is a Vercel Blob URL, never a local filesystem path
+or an inline image — this app has no persistent server-local disk in
+production (Vercel serverless), so the actual file bytes live in Vercel
+Blob storage and the Recipe document only holds a pointer to it. See
+DECISIONS.md "Recipe image upload (Vercel Blob)" for the full upload flow
+and `lib/recipeImageStorage.ts` for cleanup on replace/delete.
 
 ## Recipe creation rules
 
