@@ -720,7 +720,10 @@ Section heading:
 
 # 17. Food Image Cards
 
-The dashboard displays a horizontal row of food recommendations.
+The dashboard displays a horizontal row of food recommendations: the
+user's 3 most-frequently-assigned recipes across their whole calendar
+history (see DECISIONS.md "Suggested for You: wired to live frequent-
+recipe data"). Each card links to that recipe's edit page.
 
 Each card is image-dominant.
 
@@ -729,18 +732,27 @@ Each card is image-dominant.
 │                      │
 │      FOOD IMAGE      │
 │                      │
-│                    ♡ │
+│Recipe Name           │
+│Planned N times       │
 └──────────────────────┘
 ```
 
 Characteristics:
 
-- Large food photography.
-- Approximately 3 cards visible at desktop width.
+- The recipe's own uploaded photo (see section 27's Vercel Blob image
+  upload), or the light blue image placeholder icon if none was uploaded —
+  not stock/decorative food photography.
+- Approximately 3 cards visible at desktop width (there are at most 3
+  suggestions to begin with).
 - Rounded corners.
 - Image fills card width.
-- Heart/favorite icon appears in the top-right corner.
-- Favorite icon is placed inside a small white/light circular control.
+- A bottom gradient overlay shows the recipe name and its assignment count
+  ("Planned N times") — added since these are now real, distinguishable
+  recipes rather than an anonymous decorative image, so a name label is
+  necessary for the section to make sense.
+- **No heart/favorite icon** — this app has no favorites feature (see
+  DECISIONS.md); the original mockup's heart button was decorative/
+  non-functional and was dropped rather than shipped as a fake affordance.
 
 Use `object-fit: cover`.
 
@@ -1586,7 +1598,8 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] Today's Highlights appears below the divider.
 - [ ] Create New Recipe is the strongest action.
 - [ ] Three secondary action cards follow.
-- [ ] Suggested for You appears below.
+- [ ] Suggested for You appears below, showing the top 3 most-frequently-
+      assigned recipes with name + "Planned N times", no favorite heart.
 - [ ] Food cards use large images.
 
 ## Recipe Library
