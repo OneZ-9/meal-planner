@@ -14,6 +14,28 @@ rather than new modules.
 
 ## Recent work
 
+- Wired the Dashboard's "Suggested for You" section to real data: it now
+  shows the user's 3 most-frequently-assigned recipes across their entire
+  calendar history (confirmed with the user this should be all-time
+  frequency, not just the current week — a single week rarely has enough
+  repeats to rank meaningfully). New `GET /api/calendar/frequent-recipes`
+  (Calendar module — aggregates `CalendarEntryModel` by `recipeId`, `$sort`
+  desc, `$limit` 3, then resolves each recipe's name/image/prep time) and
+  `features/calendar/hooks/useFrequentRecipes.ts`; a new
+  `features/dashboard/components/suggested-recipes.tsx` client component
+  replaces the old hardcoded 3-card mockup (which reused crops of the same
+  reference screenshot plus a non-functional "favorite" heart button — no
+  favorites feature exists anywhere in this app). Cards now show the
+  recipe's own photo (or the standard placeholder icon), its name, and
+  "Planned N times", linking to `/recipes/[id]/edit`. DESIGN.md sections
+  16/17 + QA checklist updated; see DECISIONS.md "Suggested for You: wired
+  to live frequent-recipe data" for the full reasoning. `npx tsc --noEmit`,
+  `npm run lint`, `npm run build`, and `npx vitest run` (20 files, 151
+  tests) all pass — new coverage in
+  `app/api/calendar/frequent-recipes/route.test.ts` (auth gate, empty
+  history, count-ordering, and skipping a since-deleted recipe). Not yet
+  manually verified in a live browser (no browser automation tool
+  available, same limitation noted throughout this file).
 - Three small Calendar UX fixes, all on explicit request: (1) the recipe
   details dialog (opened by clicking an assigned recipe chip) could
   overflow the viewport on smaller screens with a recipe image + long
@@ -441,6 +463,12 @@ reproduces — `npx vitest run` passes, see FIXES.md).
 
 ## Validation state
 
+- Suggested for You (frequent-recipes): `npx tsc --noEmit`, `npm run
+  lint`, `npm run build`, and `npx vitest run` (20 files, 151 tests) all
+  pass. Not manually exercised in a live browser (no browser automation
+  tool available, same limitation noted throughout this file) — worth a
+  click-through with a real multi-week calendar history to confirm
+  ranking/images/links look right.
 - Calendar dialog max-height + "Assign recipe" empty-cell label:
   `npx tsc --noEmit` and `npm run lint` both pass. Not manually exercised
   in a live browser (no browser automation tool available, same limitation
