@@ -20,6 +20,7 @@ import {
 import type { RecipeDTO } from "@/lib/api/recipes";
 import { useRecipes } from "../hooks/useRecipes";
 import { useDeleteRecipe } from "../hooks/useDeleteRecipe";
+import { useRecipeCalendarUsage } from "../hooks/useRecipeCalendarUsage";
 import { RecipeCard } from "./recipe-card";
 
 const allRecipesFilter = "all";
@@ -41,6 +42,8 @@ export const RecipesManager = (): ReactElement => {
 
   const { data: recipes, isLoading } = useRecipes(debouncedQuery);
   const deleteRecipe = useDeleteRecipe();
+  const calendarUsage = useRecipeCalendarUsage(recipeToDelete?.id ?? null);
+  const affectedDayCount = calendarUsage.data?.count ?? 0;
 
   // Sidebar filters are derived from the tags actually in use across the
   // user's recipes, rather than DESIGN.md's mockup categories (Favorites,
@@ -189,8 +192,14 @@ export const RecipesManager = (): ReactElement => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this recipe?</AlertDialogTitle>
             <AlertDialogDescription>
-              {recipeToDelete &&
-                `"${recipeToDelete.name}" will be permanently deleted. This action cannot be undone.`}
+              {recipeToDelete && affectedDayCount > 0
+                ? `"${recipeToDelete.name}" is assigned to ${affectedDayCount} calendar ${
+                    affectedDayCount === 1 ? "day" : "days"
+                  }. Deleting it will also remove ${
+                    affectedDayCount === 1 ? "that assignment" : "those assignments"
+                  } from your calendar. This action cannot be undone.`
+                : recipeToDelete &&
+                  `"${recipeToDelete.name}" will be permanently deleted. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

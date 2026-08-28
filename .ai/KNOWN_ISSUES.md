@@ -2,9 +2,6 @@
 
 ## MVP limitations (by design — don't "fix" without a spec change)
 
-- **Cross-family unit conversion not supported.** Tablespoons of a dry
-  ingredient stay in tablespoons rather than converting to grams. See
-  DECISIONS.md for why.
 - **Only exact-match ingredient duplicates are blocked.** No fuzzy
   matching — "Tomatoe" and "Tomato" will exist as two separate ingredients.
 - **No self-service password recovery.** A locked-out user has no
@@ -25,18 +22,28 @@
   Recipe model now exists, but computing this count wasn't part of the
   Recipe module's own scope — upgrade to a real count as a small
   follow-up (query recipes referencing the ingredient's `_id`).
-- **Recipe delete still has no affected-calendar-day warning or cascade.**
-  ARCHITECTURE.md §22 calls for warning the user with an affected-day
-  count and removing calendar assignments when a recipe assigned to the
-  calendar is deleted. The Calendar module (`CalendarEntryModel`,
-  `app/api/calendar/`) now exists, so this is buildable — a first pass
-  was written and then explicitly reverted at the user's request during
-  the Calendar session to keep that change scoped to the Calendar module
-  only (see DECISIONS.md "Calendar module (US-5/US-9)"). The client still
-  shows a generic "this cannot be undone" confirmation instead of a real
-  day count, and deleting a recipe currently leaves its calendar
-  assignments in place (dangling `recipeId` references) rather than
-  cascading. Upgrade as a follow-up to the Recipe module.
+- **Recipe delete cascade has no transactional guarantee.** Deleting a
+  recipe (`DELETE /api/recipes/[id]`) now cascades to remove its calendar
+  assignments (`ARCHITECTURE.md` §22, implemented — see DECISIONS.md
+  "Recipe delete cascade (ARCHITECTURE.md §22)"), but the two writes
+  aren't wrapped in a Mongo transaction. If the process dies between the
+  recipe delete and the `CalendarEntryModel.deleteMany` call, a calendar
+  entry can be left pointing at a deleted recipe. This fails safe:
+  `toCalendarEntryDTO` already drops any entry whose recipe lookup misses,
+  so a dangling entry is silently invisible rather than erroring — same
+  accepted-risk shape as DECISIONS.md's "blunt cascade" call.
+- **Shopping List has no aisle/category grouping.** DESIGN.md's mockup
+  groups items under headings like "Produce"/"Dairy & Refrigerated", but
+  `Ingredient` has no category field and aisle categorization is an
+  explicit MoSCoW "Won't" — the list renders flat instead. See
+  DECISIONS.md "Shopping List generation (US-7/US-8)".
+- **A shopping-list checked-state row can go unreferenced.** If a recipe
+  is edited/deleted or a calendar assignment is removed such that an
+  ingredient no longer appears in a week's generated list, any
+  `ShoppingListItemState` document for that line simply stops being read —
+  it isn't cleaned up, same dangling-reference tolerance already accepted
+  for calendar entries above and for ingredient/recipe references
+  elsewhere in this app.
 
 ## Accepted risks (per spec)
 

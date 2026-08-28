@@ -5,21 +5,30 @@ import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import { IngredientModel } from "@/lib/models/ingredient";
 import { RecipeModel } from "@/lib/models/recipe";
+import { CalendarEntryModel } from "@/lib/models/calendarEntry";
 import { DELETE, GET, PATCH } from "./route";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/mongodb", () => ({ connectDB: vi.fn() }));
-vi.mock("@/lib/models/recipe", () => ({
-  RecipeModel: { findOne: vi.fn(), findOneAndDelete: vi.fn() },
-}));
+vi.mock("@/lib/models/recipe", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/models/recipe")>();
+  return {
+    ...actual,
+    RecipeModel: { findOne: vi.fn(), findOneAndDelete: vi.fn() },
+  };
+});
 vi.mock("@/lib/models/ingredient", () => ({
   IngredientModel: { find: vi.fn() },
+}));
+vi.mock("@/lib/models/calendarEntry", () => ({
+  CalendarEntryModel: { deleteMany: vi.fn() },
 }));
 
 const mockedAuth = vi.mocked(auth as () => Promise<Session | null>);
 const mockedFindOne = vi.mocked(RecipeModel.findOne);
 const mockedFindOneAndDelete = vi.mocked(RecipeModel.findOneAndDelete);
 const mockedIngredientFind = vi.mocked(IngredientModel.find);
+const mockedCalendarDeleteMany = vi.mocked(CalendarEntryModel.deleteMany);
 
 const asSession = (userId: string): Session => ({
   user: { id: userId, email: "chef@example.com" },
@@ -216,12 +225,26 @@ describe("DELETE /api/recipes/[id]", () => {
     expect(response.status).toBe(404);
   });
 
-  it("deletes an owned recipe", async () => {
+  it("deletes an owned recipe and cascades to its calendar assignments", async () => {
     mockedAuth.mockResolvedValue(asSession("user-1"));
     mockedFindOneAndDelete.mockResolvedValue(buildRecipeDoc() as never);
+    mockedCalendarDeleteMany.mockResolvedValue({ acknowledged: true, deletedCount: 2 });
 
     const response = await DELETE(buildRequest(), buildContext(validId));
 
     expect(response.status).toBe(204);
+    expect(mockedCalendarDeleteMany).toHaveBeenCalledWith({
+      userId: "user-1",
+      recipeId: validId,
+    });
+  });
+
+  it("does not touch calendar assignments when the recipe isn't owned by this user", async () => {
+    mockedAuth.mockResolvedValue(asSession("user-1"));
+    mockedFindOneAndDelete.mockResolvedValue(null);
+
+    await DELETE(buildRequest(), buildContext(validId));
+
+    expect(mockedCalendarDeleteMany).not.toHaveBeenCalled();
   });
 });
