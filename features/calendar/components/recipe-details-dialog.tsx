@@ -29,7 +29,7 @@ export const RecipeDetailsDialog = ({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={recipeId !== null}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="scrollbar-hide max-h-[85vh] overflow-y-auto sm:max-w-md">
         {isLoading && (
           <p className="py-6 text-center text-sm text-muted-foreground">
             Loading recipe...
@@ -65,7 +65,7 @@ export const RecipeDetailsDialog = ({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="max-h-[60vh] space-y-4 overflow-y-auto py-2">
+            <div className="space-y-4 py-2">
               {recipe.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {recipe.tags.map((tag) => (

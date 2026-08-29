@@ -720,7 +720,10 @@ Section heading:
 
 # 17. Food Image Cards
 
-The dashboard displays a horizontal row of food recommendations.
+The dashboard displays a horizontal row of food recommendations: the
+user's 3 most-frequently-assigned recipes across their whole calendar
+history (see DECISIONS.md "Suggested for You: wired to live frequent-
+recipe data"). Each card links to that recipe's edit page.
 
 Each card is image-dominant.
 
@@ -729,18 +732,27 @@ Each card is image-dominant.
 │                      │
 │      FOOD IMAGE      │
 │                      │
-│                    ♡ │
+│Recipe Name           │
+│Planned N times       │
 └──────────────────────┘
 ```
 
 Characteristics:
 
-- Large food photography.
-- Approximately 3 cards visible at desktop width.
+- The recipe's own uploaded photo (see section 27's Vercel Blob image
+  upload), or the light blue image placeholder icon if none was uploaded —
+  not stock/decorative food photography.
+- Approximately 3 cards visible at desktop width (there are at most 3
+  suggestions to begin with).
 - Rounded corners.
 - Image fills card width.
-- Heart/favorite icon appears in the top-right corner.
-- Favorite icon is placed inside a small white/light circular control.
+- A bottom gradient overlay shows the recipe name and its assignment count
+  ("Planned N times") — added since these are now real, distinguishable
+  recipes rather than an anonymous decorative image, so a name label is
+  necessary for the section to make sense.
+- **No heart/favorite icon** — this app has no favorites feature (see
+  DECISIONS.md); the original mockup's heart button was decorative/
+  non-functional and was dropped rather than shipped as a fake affordance.
 
 Use `object-fit: cover`.
 
@@ -1068,7 +1080,7 @@ A single card (white surface, 1px border, rounded corners) contains the full wee
 - Header row: `--color-surface-muted` background, weekday abbreviation (bold, small) stacked over the day-of-month number (regular, small, secondary text).
 - Leftmost column: meal-slot labels (`Breakfast`, `Lunch`, `Dinner`), narrower than the day columns, secondary text.
 - Grid lines: `1px` `--color-border` between every row and column.
-- Empty cells: blank, `--color-surface`. Do not render a placeholder icon or "add meal" affordance unless a product requirement adds one — the reference shows plain empty cells.
+- Empty cells: `--color-surface`, with a low-opacity "Assign recipe" text label (no icon) centered in the cell as a clickable affordance — added on explicit product request, superseding the original reference's plain empty cells. See DECISIONS.md "Calendar empty-cell 'Assign recipe' label".
 
 ## Meal chip
 
@@ -1586,7 +1598,8 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] Today's Highlights appears below the divider.
 - [ ] Create New Recipe is the strongest action.
 - [ ] Three secondary action cards follow.
-- [ ] Suggested for You appears below.
+- [ ] Suggested for You appears below, showing the top 3 most-frequently-
+      assigned recipes with name + "Planned N times", no favorite heart.
 - [ ] Food cards use large images.
 
 ## Recipe Library
@@ -1607,7 +1620,7 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] Prev/Today/Next controls are grouped top-right.
 - [ ] Grid has 7 day columns and Breakfast/Lunch/Dinner rows.
 - [ ] Meal chips use the primary-soft background, not the metric-card blue.
-- [ ] Empty cells render blank with no placeholder content.
+- [ ] Empty cells show a low-opacity "Assign recipe" text label, no icon.
 
 ## Create Recipe
 

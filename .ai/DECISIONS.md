@@ -1,3 +1,78 @@
+## Suggested for You: wired to live frequent-recipe data
+
+The Dashboard's "Suggested for You" section (DESIGN.md sections 16/17) was
+a static mockup: 3 hardcoded captions paired with different crops of the
+same `docs/design-reference/dashboard.png` reference screenshot, plus a
+decorative "add to favorites" heart button with no backing feature. On
+request, wired this to real data: the user's 3 most-frequently-assigned
+recipes across their **entire calendar history** (not just the visible
+week — confirmed with the user, since a single week rarely has enough
+repeats to make "most frequent this week" a meaningful ranking, and
+all-time frequency reads as "recipes you actually keep coming back to").
+
+- **New `GET /api/calendar/frequent-recipes`**, owned by the Calendar
+  module (it aggregates `CalendarEntryModel`, consistent with ARCHITECTURE.md
+  "Calendar -> Recipe Boundary" — Calendar references recipes by id, so
+  this aggregates its own assignment data rather than Recipes or Dashboard
+  owning any of it). A Mongo aggregation (`$group` by `recipeId`, `$sort`
+  by count desc, `$limit` 3) rather than fetching every calendar entry a
+  user has ever created and counting client-side.
+- **No favorites feature exists in this app** (grepped the codebase to
+  confirm — the only other "favorite" references were this same decorative
+  button and an unrelated "Auto-Generate Plan" description string). Rather
+  than keep the non-functional heart icon from the original mockup, it was
+  dropped; the recipe name + "Planned N times" caption (new, not in the
+  original mockup) replaces it as the informational element, since these
+  are now real distinguishable recipes rather than an anonymous stock
+  photo.
+- Each card links to `/recipes/[id]/edit` — the only recipe-detail view
+  outside the calendar's own read-only dialog (see "Recipe details dialog:
+  capped height + scroll" above), matching `RecipeCard`'s existing edit
+  link in the Recipe Library.
+- Cards show the recipe's own uploaded image (Vercel Blob, see "Recipe
+  image upload" below) when set, falling back to the same light-blue
+  placeholder icon `RecipeCard` uses — not the reference screenshot crops
+  the old mockup used.
+- `features/dashboard/data/dashboard-data.ts`'s hardcoded `suggestions`
+  array was deleted (no longer referenced); `SuggestedRecipes`
+  (`features/dashboard/components/suggested-recipes.tsx`) is a new
+  client component (data fetching needs `"use client"`, same split
+  reasoning as `DashboardOverview`) composed into the still-server
+  `dashboard-screen.tsx`.
+
+## Calendar empty-cell "Assign recipe" label
+
+Empty calendar cells now render a low-opacity "Assign recipe" text label
+(no icon) instead of the fully blank cell DESIGN.md §28 originally
+specified ("Do not render a placeholder icon or 'add meal' affordance
+unless a product requirement adds one"). Changed on explicit user request —
+a product requirement did add one. `features/calendar/components/
+calendar-grid.tsx`'s empty-cell `<button>` now has visible text content
+(`text-muted-foreground/50`) instead of being an invisible full-cell hit
+target; DESIGN.md §28 and its QA checklist item updated to match.
+
+## Recipe details dialog: capped height + scroll
+
+`features/calendar/components/recipe-details-dialog.tsx`'s `DialogContent`
+had no height cap — with a recipe image, header, and a long ingredient/
+instructions list, the dialog could exceed the viewport on smaller screens
+with no way to reach the content below the fold (the base `DialogContent`
+in `components/ui/dialog.tsx` doesn't constrain height, and the dialog only
+had an inner `max-h-[60vh] overflow-y-auto` around the ingredients/
+instructions section, not the image+header above it). Fixed by moving the
+height cap to the outer `DialogContent` (`max-h-[85vh] overflow-y-auto`)
+so the whole dialog — image, header, and body — scrolls as one unit within
+85% of the viewport height; the now-redundant inner scroll container was
+simplified to a plain `space-y-4` div. Follow-up on request: the visible
+scrollbar on that scroll container was hidden (scroll behavior unchanged,
+still keyboard/wheel/touch scrollable) via a new `.scrollbar-hide` utility
+in `app/globals.css` (`scrollbar-width: none` + `-ms-overflow-style: none`
++ a `::-webkit-scrollbar { display: none }` fallback for Safari/older
+Chrome), applied to the dialog's `DialogContent`. Not (yet) applied
+anywhere else in the app — scoped to this one dialog since that's what was
+asked for, but the utility is generic and reusable if another scrollable
+container needs the same treatment later.
+
 ## Recipe image upload (Vercel Blob)
 
 Added optional recipe images to Create/Edit Recipe (`recipe-form.tsx`),
