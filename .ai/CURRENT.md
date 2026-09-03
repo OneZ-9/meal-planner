@@ -14,6 +14,35 @@ rather than new modules.
 
 ## Recent work
 
+- **Fixed the mobile nav: the hamburger icon in `AppNav` rendered but had no
+  `onClick`/panel behind it** (reported by the user — "in mobile view i
+  cannot expand navigation, it only appear icon and when click on it
+  nothing happens"). `features/app-shell/components/app-nav.tsx` stays a
+  Server Component; the interactive piece is a new
+  `features/app-shell/components/mobile-nav-control.tsx` Client Component
+  (same split pattern as `sign-out-control.tsx`) built on shadcn's `sheet`
+  primitive (`components/ui/sheet.tsx`, added via `npx shadcn@latest add
+  sheet` — DEVELOPMENT.md's "default to shadcn primitives" convention;
+  this also reformatted `components/ui/button.tsx`, formatting-only,
+  confirmed via `--diff` before allowing the overwrite). Renders a
+  left-side sheet with all 5 nav links + active-item highlight
+  (`aria-current`), opened by the header's `Menu` icon button and closed
+  by its own X/overlay or by clicking a link (`onOpenChange`-controlled
+  `open` state so the link's `onClick` can close it before navigating).
+  `npx tsc --noEmit` and `npm run lint` both pass.
+  **Manually verified in a real Chromium browser this session** — a
+  cached global Playwright install (`playwright-core` under
+  `%LOCALAPPDATA%\npm-cache\_npx\...\node_modules`, not a project
+  dependency) turned out to be usable despite not being on `PATH`/in
+  `node_modules`, contradicting every earlier "no browser automation
+  tool available" note elsewhere in this file — worth trying again in
+  future sessions before assuming it's unavailable. At a 375px viewport
+  against the already-running local dev server: header collapses to
+  brand + hamburger + sign-out icon only, tapping the hamburger opens the
+  sheet with all 5 links and the active one highlighted, and clicking
+  "Recipes" both closed the sheet and navigated to `/recipes`. Test user
+  accounts created for this check were deleted from the shared Atlas
+  cluster afterward.
 - Wired the Dashboard's "Suggested for You" section to real data: it now
   shows the user's 3 most-frequently-assigned recipes across their entire
   calendar history (confirmed with the user this should be all-time
