@@ -1,8 +1,8 @@
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
 
 import { signOut } from "@/auth";
+import { MobileNavControl } from "./mobile-nav-control";
 import { SignOutControl } from "./sign-out-control";
 
 const navigation = [
@@ -50,13 +50,7 @@ export const AppNav = ({ activePath }: AppNavProps): ReactElement => {
             );
           })}
         </nav>
-        <button
-          aria-label="Open navigation menu"
-          className="ml-auto rounded-md p-2 text-muted-foreground hover:bg-muted sm:hidden"
-          type="button"
-        >
-          <Menu className="size-5" />
-        </button>
+        <MobileNavControl activePath={activePath} navigation={navigation} />
         <SignOutControl signOutAction={handleSignOut} />
       </div>
     </header>
