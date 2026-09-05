@@ -19,6 +19,7 @@ import { useRemoveAssignment } from "../hooks/useRemoveAssignment";
 import { useWeekCalendar } from "../hooks/useWeekCalendar";
 import { AssignRecipeDialog, type AssignRecipeTarget } from "./assign-recipe-dialog";
 import { CalendarGrid, cellKey } from "./calendar-grid";
+import { CalendarGridSkeleton } from "./calendar-grid-skeleton";
 import { RecipeDetailsDialog } from "./recipe-details-dialog";
 
 const mealSlotLabels: Record<MealSlot, string> = {
@@ -109,7 +110,7 @@ export const CalendarManager = (): ReactElement => {
       </header>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading your week...</p>
+        <CalendarGridSkeleton />
       ) : (
         <CalendarGrid
           entriesByCell={entriesByCell}

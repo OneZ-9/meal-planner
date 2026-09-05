@@ -10,6 +10,7 @@ import {
   Utensils,
 } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import type { MealSlot } from "@/lib/mealSlot";
 import { actions } from "../data/dashboard-data";
 import { useDashboardSummary } from "../hooks/useDashboardSummary";
@@ -93,7 +94,11 @@ export const DashboardOverview = (): ReactElement => {
                 <dd
                   className={`text-xl font-semibold ${metric.emphasized ? "text-primary" : "text-foreground"}`}
                 >
-                  {metric.value}
+                  {isLoading ? (
+                    <Skeleton className="mx-auto h-6 w-8" />
+                  ) : (
+                    metric.value
+                  )}
                 </dd>
                 <dt className="mt-1 text-[11px] text-muted-foreground">
                   {metric.label}
@@ -112,14 +117,18 @@ export const DashboardOverview = (): ReactElement => {
                 </span>
                 <div>
                   <p className="text-[11px] text-muted-foreground">Dinner</p>
-                  <p
-                    className={`text-sm font-semibold ${dinnerIsMissing ? "text-destructive" : "text-foreground"}`}
-                  >
-                    {todayHighlights?.dinnerRecipeName ??
-                      (todayHighlights
-                        ? "not allocated yet"
-                        : unavailableValue)}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="mt-1 h-4 w-24" />
+                  ) : (
+                    <p
+                      className={`text-sm font-semibold ${dinnerIsMissing ? "text-destructive" : "text-foreground"}`}
+                    >
+                      {todayHighlights?.dinnerRecipeName ??
+                        (todayHighlights
+                          ? "not allocated yet"
+                          : unavailableValue)}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex min-h-14 items-center gap-3 rounded-md border border-border bg-background px-3 py-2">
@@ -136,11 +145,15 @@ export const DashboardOverview = (): ReactElement => {
                 </span>
                 <div>
                   <p className="text-[11px] text-muted-foreground">Missing</p>
-                  <p
-                    className={`text-sm font-semibold ${hasMissingMeals ? "text-destructive" : allMealsSelected ? "text-primary" : "text-muted-foreground"}`}
-                  >
-                    {missingMealsText}
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="mt-1 h-4 w-32" />
+                  ) : (
+                    <p
+                      className={`text-sm font-semibold ${hasMissingMeals ? "text-destructive" : allMealsSelected ? "text-primary" : "text-muted-foreground"}`}
+                    >
+                      {missingMealsText}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -165,14 +178,16 @@ export const DashboardOverview = (): ReactElement => {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold">{title}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {description ??
-                    (summary
-                      ? `${summary.itemsToBuy} ${summary.itemsToBuy === 1 ? "item" : "items"} remaining`
-                      : isLoading
-                        ? "Loading remaining items…"
+                {description == null && isLoading ? (
+                  <Skeleton className="mt-1 h-3 w-24" />
+                ) : (
+                  <span className="block text-xs text-muted-foreground">
+                    {description ??
+                      (summary
+                        ? `${summary.itemsToBuy} ${summary.itemsToBuy === 1 ? "item" : "items"} remaining`
                         : "Items unavailable")}
-                </span>
+                  </span>
+                )}
               </span>
               <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </Link>

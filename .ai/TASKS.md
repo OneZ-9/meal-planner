@@ -186,6 +186,21 @@ Shopping List).
       `npm run lint`, `npm run build`, and `npx vitest run` (19 files,
       147 tests).
 
+- [x] Skeleton loading, empty/search-not-found states, and a 404 page
+      (DESIGN.md Rule #19 — loading/empty/error/success states — was only
+      partially met before this). New `features/shared/` (`EmptyState`,
+      `NotFoundPanel`); per-feature skeleton components for Recipes,
+      Ingredients, Calendar, Shopping List, Dashboard, Suggested for You,
+      the Assign Recipe dialog, and the Calendar recipe-details dialog;
+      `app/not-found.tsx` (route-level 404, shell-aware via `auth()`); a
+      new `RecipeNotFoundError` so a deleted/foreign recipe's edit page
+      shows the shared not-found panel instead of a generic error. See
+      DECISIONS.md "Skeleton loading, empty/search-not-found states, and a
+      404 page" for the full breakdown. Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, `npx vitest run` (20 files, 151
+      tests), and a real Chromium browser session (registered/deleted
+      throwaway Atlas test accounts) covering every new state.
+
 ## Explicitly deferred (Future Features, not MVP)
 
 Density-based cross-family unit conversion, fuzzy ingredient matching,

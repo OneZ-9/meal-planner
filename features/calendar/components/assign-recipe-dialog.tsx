@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
-import { Clock, Search } from "lucide-react";
+import { Clock, Search, SearchX } from "lucide-react";
 
 import {
   Dialog,
@@ -12,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/features/shared";
 // Imported directly from its hook file, not the features/recipes barrel —
 // that barrel also re-exports RecipesScreen (a Server Component whose graph
 // pulls in @/auth -> mongoose), which breaks the client bundle if pulled in
@@ -89,15 +91,25 @@ export const AssignRecipeDialog = ({
 
           <div className="max-h-72 overflow-y-auto rounded-md border border-border">
             {isLoading && (
-              <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                Loading recipes...
-              </p>
+              <div aria-hidden className="space-y-0">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div
+                    className="flex items-center justify-between gap-3 border-b border-border px-3 py-2.5 last:border-b-0"
+                    key={index}
+                  >
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-8" />
+                  </div>
+                ))}
+              </div>
             )}
 
             {!isLoading && (recipes ?? []).length === 0 && (
-              <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-                No recipes found. Create one from the Recipes page first.
-              </p>
+              <EmptyState
+                className="rounded-none border-none px-3 py-8"
+                description="No recipes found. Create one from the Recipes page first."
+                icon={SearchX}
+              />
             )}
 
             {!isLoading &&

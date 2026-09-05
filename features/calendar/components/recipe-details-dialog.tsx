@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useRecipeDetails } from "../hooks/useRecipeDetails";
 
 type RecipeDetailsDialogProps = {
@@ -31,9 +32,18 @@ export const RecipeDetailsDialog = ({
     <Dialog onOpenChange={onOpenChange} open={recipeId !== null}>
       <DialogContent className="scrollbar-hide max-h-[85vh] overflow-y-auto sm:max-w-md">
         {isLoading && (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            Loading recipe...
-          </p>
+          <div aria-hidden className="space-y-4">
+            <Skeleton className="aspect-[1.65/1] w-full rounded-md" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-3.5 w-1/3" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-2/3" />
+            </div>
+          </div>
         )}
 
         {!isLoading && recipe && (
