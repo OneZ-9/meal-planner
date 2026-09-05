@@ -2,8 +2,13 @@
 
 ## Status
 
-Not yet deployed. This doc is the plan for when it happens — fill in the
-real Vercel project URL and org once created.
+**Deployed.** Live at
+[mealprep-meal-planner.vercel.app](https://mealprep-meal-planner.vercel.app),
+connected via the Vercel Git integration to `OneZ-9/meal-planner` (auto-deploys
+on push, per the "Planned procedure" below, now completed). Vercel
+org/project settings themselves aren't visible from this repo — check the
+Vercel dashboard for those details (billing, team, domain config) if
+needed.
 
 ## Target
 
@@ -30,8 +35,13 @@ extra config beyond environment variables.
 
 ## Verification after deploy
 
-- [ ] `/login` loads and sign-in works against the production MongoDB Atlas cluster.
-- [ ] `/dashboard` loads post-login.
+- [x] `/login` loads. Verified via HTTP smoke check: `/`, `/dashboard`, and
+      `/register` all return 200, with `/` and `/dashboard` correctly
+      redirecting a signed-out request to `/login` (auth gate is live).
+- [ ] Sign-in works against the production MongoDB Atlas cluster — not yet
+      exercised with real credentials against prod (the smoke check above
+      only confirms routing/redirects, not a real login).
+- [ ] `/dashboard` loads post-login (needs an authenticated session to check).
 - [ ] Create a recipe → assign to calendar → generate shopping list →
       check an item, end to end, matching the spec's functional success
       measure.

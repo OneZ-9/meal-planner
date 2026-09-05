@@ -8,12 +8,29 @@
 
 All five MVP modules (Auth, Ingredients, Recipes, Calendar, Shopping List)
 are implemented, plus one non-spec addition on request: recipe image
-upload via Vercel Blob. Remaining work is Week 2 polish (ingredient
-delete, live browser verification against a real Blob store, deployment)
-rather than new modules.
+upload via Vercel Blob. The app is now deployed and live on Vercel
+(https://mealprep-meal-planner.vercel.app). Remaining work is final
+verification, not new modules or deployment setup: ingredient delete,
+confirming the Blob store is connected in production, and a full
+end-to-end functional check against the live deployment.
 
 ## Recent work
 
+- Deployed to Vercel (connected via Vercel's Git integration to
+  `OneZ-9/meal-planner`, reported by the user) — live at
+  https://mealprep-meal-planner.vercel.app. Verified with an HTTP smoke
+  check against production: `/`, `/dashboard`, and `/register` all return
+  200, with `/` and `/dashboard` correctly redirecting a signed-out
+  request to `/login` (confirms the auth gate is live in production, not
+  just locally). Updated `.ai/DEPLOYMENT.md` (Status: Deployed, checked
+  off the routing/redirect verification item), `.ai/PROJECT.md`
+  (Environments table), and `README.md` (a Live link at the top, Hosting
+  in Tech stack, Project state) to point at the real URL. **Not yet
+  verified**: real sign-in against the production Atlas cluster, whether
+  a Vercel Blob store is connected (recipe image upload untested in
+  prod), and the full signup → recipe → calendar → shopping-list →
+  checklist functional flow end-to-end on the live deployment — see
+  DEPLOYMENT.md's verification checklist for what's still unchecked.
 - **Fixed the mobile nav: the hamburger icon in `AppNav` rendered but had no
   `onClick`/panel behind it** (reported by the user — "in mobile view i
   cannot expand navigation, it only appear icon and when click on it
@@ -22,7 +39,7 @@ rather than new modules.
   `features/app-shell/components/mobile-nav-control.tsx` Client Component
   (same split pattern as `sign-out-control.tsx`) built on shadcn's `sheet`
   primitive (`components/ui/sheet.tsx`, added via `npx shadcn@latest add
-  sheet` — DEVELOPMENT.md's "default to shadcn primitives" convention;
+sheet` — DEVELOPMENT.md's "default to shadcn primitives" convention;
   this also reformatted `components/ui/button.tsx`, formatting-only,
   confirmed via `--diff` before allowing the overwrite). Renders a
   left-side sheet with all 5 nav links + active-item highlight
@@ -78,14 +95,14 @@ rather than new modules.
   calendar cells now show a low-opacity "Assign recipe" text label instead
   of rendering fully blank, reversing DESIGN.md §28's original "no
   placeholder affordance" rule in `features/calendar/components/
-  calendar-grid.tsx`. DESIGN.md §28 (spec + QA checklist) updated to match;
+calendar-grid.tsx`. DESIGN.md §28 (spec + QA checklist) updated to match;
   see DECISIONS.md for both entries. Not yet manually verified in a live
   browser (no browser automation tool available, same limitation noted
   throughout this file) — worth a quick click-through to confirm the
   dialog scrolls correctly with a real long recipe and image.
 - Checked for the git-merge-conflict-markers issue this file's own history
   describes recurring in past sessions — none found this session; `git
-  status` was clean and no `<<<<<<<`/`=======`/`>>>>>>>` markers exist
+status` was clean and no `<<<<<<<`/`=======`/`>>>>>>>` markers exist
   anywhere in the repo.
 - Fixed a second occurrence of literal unresolved git-merge conflict
   markers committed directly into this file's "Recent work" section (a
@@ -149,8 +166,8 @@ rather than new modules.
 - **Bugfix — creating an ingredient inline mid-recipe (search finds no
   match → Create) saved two duplicate recipes** (reported by another dev;
   root cause confirmed by them after the fix landed — the initial pass at
-  this entry incorrectly assumed the symptom was a duplicated *ingredient*
-  row and chased a double-submit *race*, which a live test against the
+  this entry incorrectly assumed the symptom was a duplicated _ingredient_
+  row and chased a double-submit _race_, which a live test against the
   real Atlas cluster ruled out as the actual cause). Best-supported
   explanation: `IngredientFormDialog`'s popup renders via a `DialogPortal`,
   so its `<form onSubmit>` is physically outside `RecipeForm`'s own
@@ -340,7 +357,7 @@ rather than new modules.
   `npm test` / `npx vitest run` could **not** be verified this session —
   Vitest 4's `rolldown` dependency fails to load its native binding on
   this machine (`Cannot find native binding... npm has a bug related to
-  optional dependencies`, npm/cli#4828) regardless of a clean
+optional dependencies`, npm/cli#4828) regardless of a clean
   `node_modules`/`package-lock.json` reinstall under the current Node
   v20.15.1. Recipe tests were written (`lib/recipeValidation.test.ts`,
   `app/api/recipes/route.test.ts`, `app/api/recipes/[id]/route.test.ts`,
@@ -453,9 +470,7 @@ modules:
 
 1. Set a strong `AUTH_SECRET` locally and in the deployment environment, then
    manually exercise registration/login against the intended Atlas database.
-2. Manual click-through in a live browser (no browser automation tool
-   available in this environment, same limitation noted throughout this
-   file) — verify the new sign-out confirmation's Cancel and Sign out paths;
+2. Manual click-through in a live browser — verify the new sign-out confirmation's Cancel and Sign out paths;
    this has also never been done for: the recipe delete cascade (both
    with and without calendar assignments), the entire Shopping List
    screen (week nav, checkbox toggling incl. optimistic-update rollback on
@@ -470,11 +485,18 @@ modules:
    whether the ingredient appears in any current shopping-list generation,
    though the latter is derived data and doesn't need its own check beyond
    the existing recipe-reference one.
-4. Vercel project connection / deployment (see DEPLOYMENT.md) — not done
-   yet. Once a project exists, create its Blob store too (see
-   DEPLOYMENT.md step 3) — recipe image upload needs `BLOB_READ_WRITE_TOKEN`
-   and hasn't been exercised against a real store yet, only unit-tested
-   with `handleUpload` mocked.
+4. **Done**: Vercel project connected and deployed — live at
+   https://mealprep-meal-planner.vercel.app (see DEPLOYMENT.md, updated to
+   "Deployed"). HTTP smoke check confirms routing/auth-gating works in
+   production (`/`, `/dashboard` → redirect signed-out to `/login`;
+   `/register` loads). **Not yet confirmed**: whether a Vercel Blob store
+   is connected to this project — recipe image upload needs
+   `BLOB_READ_WRITE_TOKEN` and still hasn't been exercised against a real
+   store (only unit-tested with `handleUpload` mocked); check the Vercel
+   dashboard's Storage tab and try an actual image upload in production.
+   Full end-to-end functional check (signup → recipe → calendar → shopping
+   list → checklist) against production also still pending — see
+   DEPLOYMENT.md's verification checklist.
 5. Consider adding `event.stopPropagation()` to
    `ingredient-form-dialog.tsx`'s submit handlers as a more direct fix for
    the dialog-in-a-portal-inside-a-form issue described in the "Bugfix"
@@ -493,7 +515,7 @@ reproduces — `npx vitest run` passes, see FIXES.md).
 ## Validation state
 
 - Suggested for You (frequent-recipes): `npx tsc --noEmit`, `npm run
-  lint`, `npm run build`, and `npx vitest run` (20 files, 151 tests) all
+lint`, `npm run build`, and `npx vitest run` (20 files, 151 tests) all
   pass. Not manually exercised in a live browser (no browser automation
   tool available, same limitation noted throughout this file) — worth a
   click-through with a real multi-week calendar history to confirm
@@ -520,7 +542,7 @@ reproduces — `npx vitest run` passes, see FIXES.md).
   browser automation tool available, same limitation noted throughout
   this file).
 - Sign-out confirmation: `npx tsc --noEmit`, `npm run lint`, and `npm run
-  build` pass. The production build confirms the Server Action can be passed
+build` pass. The production build confirms the Server Action can be passed
   into the isolated Client Component without pulling server-only auth/database
   dependencies into the browser bundle. Manual authenticated browser QA is
   still pending.
@@ -534,7 +556,7 @@ reproduces — `npx vitest run` passes, see FIXES.md).
   `http://localhost:3000`, but no in-app or extension browser connection was
   available in this session.
 - Shopping List module: `npx tsc --noEmit`, `npm run lint`, `npm run
-  build`, and `npx vitest run` (17 files, 130 tests) all pass. New
+build`, and `npx vitest run` (17 files, 130 tests) all pass. New
   coverage: `lib/unitConversion.test.ts` (reproduces the spec's verified
   sugar/olive-oil test cases plus count passthrough and the missing-
   density "unmerged" case), `lib/shoppingListGenerator.test.ts` (merging
@@ -549,7 +571,7 @@ reproduces — `npx vitest run` passes, see FIXES.md).
   throughout this file) — see "Next action" above for what that
   click-through still needs to cover.
 - Recipe delete cascade: `npx tsc --noEmit`, `npm run lint`, `npm run
-  build`, and `npx vitest run` (13 files, 97 tests) all pass — the first
+build`, and `npx vitest run` (13 files, 97 tests) all pass — the first
   time this repo's full suite has actually executed rather than being
   verified by reading (see FIXES.md). New coverage:
   `app/api/recipes/[id]/route.test.ts` (DELETE now asserts the
