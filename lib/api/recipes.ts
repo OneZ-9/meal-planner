@@ -40,6 +40,13 @@ export type RecipeInput = {
   imageUrl: string | null;
 };
 
+export class RecipeNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RecipeNotFoundError";
+  }
+}
+
 const parseErrorMessage = async (response: Response): Promise<string> => {
   const body = await response.json().catch(() => null);
   return (
@@ -63,7 +70,11 @@ export const fetchRecipes = async (query?: string): Promise<RecipeDTO[]> => {
 export const fetchRecipe = async (id: string): Promise<RecipeDTO> => {
   const response = await fetch(`/api/recipes/${id}`);
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response));
+    const message = await parseErrorMessage(response);
+    if (response.status === 404) {
+      throw new RecipeNotFoundError(message);
+    }
+    throw new Error(message);
   }
   return response.json();
 };

@@ -1638,6 +1638,19 @@ Before considering a screen complete, compare it against the Stitch/reference de
 - [ ] List Progress card uses a solid primary-green background.
 - [ ] Inspiration card image has rounded top corners only.
 
+## Loading / Empty / Not-Found
+
+- [ ] Recipes, Ingredients, Calendar, Shopping List, Dashboard, Suggested
+      for You, the Assign Recipe dialog, and the Calendar recipe-details
+      dialog all show a layout-shaped skeleton (not bare "Loading..." text)
+      while their data fetches.
+- [ ] Recipes/Ingredients search-not-found and the Assign Recipe dialog's
+      no-match state use `EmptyState` with a `SearchX` icon.
+- [ ] An unmatched route shows `app/not-found.tsx` — `AppNav`-wrapped for a
+      signed-in user, a bare centered card for a signed-out one.
+- [ ] Editing a deleted/foreign recipe shows the shared `NotFoundPanel`
+      inline instead of the generic form-load error.
+
 ---
 
 # 40. Source-of-Truth Rule
@@ -1651,6 +1664,48 @@ When implementing a UI decision, use this priority:
 5. Developer implementation preference.
 
 If the agent notices a difference between an existing implementation and this document, the agent should update the implementation to match the design specification unless an explicit product requirement says otherwise.
+
+---
+
+# 41.5 Loading, Empty, and Not-Found Patterns
+
+New reusable visual patterns added per Rule #20 below — reuse these rather
+than inventing another loading/empty/not-found treatment.
+
+## Skeleton loading
+
+Every list/detail screen that fetches data shows a skeleton shaped like the
+real content (same card/row/grid dimensions) instead of a bare "Loading..."
+text line, using the shadcn `Skeleton` primitive
+(`components/ui/skeleton.tsx`, an `animate-pulse rounded-md bg-muted`
+block). Per-feature skeleton components (e.g. `RecipeCardSkeleton`,
+`CalendarGridSkeleton`) live beside the component they mirror, not in
+`components/ui/`.
+
+## Empty / search-not-found states
+
+`features/shared/components/empty-state.tsx`'s `EmptyState` (icon, message,
+optional action) is the single pattern for "nothing to show here": a
+`SearchX` icon for a search producing no matches, a domain-appropriate
+icon otherwise (e.g. `ShoppingCart` for an empty shopping list,
+`UtensilsCrossed` for no recipes yet). Reuse it rather than a bespoke
+bordered-card-with-text block.
+
+## 404 / not-found
+
+`features/shared/components/not-found-panel.tsx`'s `NotFoundPanel` (icon in
+a circular soft-primary badge, bold title, muted description, one primary
+action link) is the single pattern for "this doesn't exist":
+
+- **Route-level 404** — `app/not-found.tsx`, Next.js's global not-found
+  page. Signed-in users see it inside the normal `AppNav` shell; signed-out
+  users see a bare centered card (no nav exists pre-auth), same treatment
+  as the Login screen's shadow-overlay card.
+- **Resource-level 404** (a specific record that 404s after the route
+  itself resolved, e.g. editing a deleted recipe) — rendered inline in
+  place of the normal content, using the same `NotFoundPanel` but pointed
+  at a relevant back-link (e.g. "Back to Recipe Library" instead of "Back
+  to Dashboard").
 
 ---
 

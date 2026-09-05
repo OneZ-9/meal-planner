@@ -4,6 +4,74 @@
 > / Solution / Related. Skip one-off typos that won't happen again.
 
 ---
+### "No browser automation tool available" — not actually true on this machine
+**Symptom**: Many past sessions (see the repeated caveat throughout
+CURRENT.md's "Recent work"/"Validation state" entries) skipped live-browser
+verification, citing no available browser automation tool, and left UI bugs
+(e.g. a dead mobile-nav button, see the "mobile nav" entry in CURRENT.md)
+unverified in a real browser as a result.
+**Cause**: Playwright is not a project dependency (this project's only
+automated test runner is Vitest — see "Testing" in DEVELOPMENT.md; a
+Playwright devDependency + scaffold was tried for one session and then
+deliberately reverted, keeping the project single-test-runner) so
+`npx playwright ...` prints a "run `npm install` first" warning and reads
+as unavailable. But `npx playwright install chromium` had already
+downloaded a Chromium binary in a prior session
+(`~/AppData/Local/ms-playwright/chromium-*`), and the `playwright-core`
+package itself is sitting in the global npx cache
+(`%LOCALAPPDATA%\npm-cache\_npx\<hash>\node_modules\playwright-core`) — it
+just isn't resolvable via ESM `import` from outside that directory (Node's
+ESM resolver ignores `NODE_PATH`).
+**Solution**: For a one-off manual-QA check (not a checked-in test — this
+project doesn't have E2E specs), write the driver script, copy it into
+that npx cache directory (locate the hash dir once with
+`find ~/AppData/Local/npm-cache/_npx -maxdepth 3 -iname playwright-core`),
+then `cd` into that directory and `node script.mjs` from there so the
+relative `node_modules/playwright-core` resolves normally. `chromium.launch()`
+from `playwright-core` works with the already-downloaded browser; no
+`npm install`/`package.json` change needed. If no Chromium build exists yet,
+`npx playwright install chromium` still works despite the same warning.
+**Simpler alternative** (found in the skeleton/404/empty-states session):
+skip copying the script anywhere. Run `node -e "..."` (CommonJS, not an
+`.mjs`/ESM script) with `NODE_PATH` set to the npx cache's hash directory —
+e.g. `NODE_PATH="$LOCALAPPDATA/npm-cache/_npx/<hash>/node_modules" node -e
+"const { chromium } = require('playwright-core'); ..."`. `NODE_PATH` *is*
+honored by Node's CommonJS `require()` resolver (only the ESM `import`
+resolver ignores it, per the "Cause" above), so this works from any
+directory with no file copying — pass data out via `process.env` (set
+before invoking `node`, not inline in the same `-e` string) rather than
+relying on the script's own `__dirname`.
+**Related**: `.ai/CURRENT.md` "Fixed the mobile nav" entry (where this was
+first tried) and its later "Playwright reverted" follow-up (why it isn't a
+dependency despite that session installing one).
+
+---
+### `npx shadcn@latest add <name>` can generate an import that breaks this repo's `cn()` convention
+**Symptom**: Running `npx shadcn@latest add skeleton` generated
+`components/ui/skeleton.tsx` importing `cn` from a bare `"cn"` package
+(`import { cn } from "cn"`) and silently added `"cn": "^0.2.5"` to
+`package.json`/`package-lock.json` — a second, redundant class-merge helper
+alongside this repo's actual convention, `cn()` in `lib/utils.ts` (used by
+every other `components/ui/*.tsx` file).
+**Cause**: the installed shadcn CLI version's `base-nova` style registry
+entry for `skeleton` ships that import as its default template; it doesn't
+consult this project's `components.json` (`aliases.utils: "@/lib/utils"`)
+for this particular component.
+**Solution**: after running the generator, check the new file's imports
+against sibling `components/ui/*.tsx` files. If it imports `cn` from
+anywhere other than `@/lib/utils`, hand-edit the import and revert the
+unwanted dependency (`git checkout -- package.json package-lock.json` if
+nothing else changed them in the same session). Also worth noting: the
+same `npx shadcn@latest add <name>` invocation can hang/timeout on its
+`npm install -- cn` step on a slow connection (exit code 143) without
+having written the target file yet — check `git status`/the target path
+before assuming the command fully failed; a retry with a longer timeout
+succeeded on the second attempt.
+**Related**: none yet — first shadcn primitive added since PROJECT.md's
+"Stack notes" convention was written; watch for the same issue on future
+`npx shadcn@latest add <name>` runs.
+
+---
 ### Creating an ingredient inline (mid-recipe) saves two duplicate recipes
 **Symptom**: While creating/editing a recipe, using the inline "create new
 ingredient" flow (search finds no match → Create) and clicking "Create

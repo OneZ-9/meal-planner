@@ -1,3 +1,65 @@
+## Skeleton loading, empty/search-not-found states, and a 404 page
+
+DESIGN.md's Agent Implementation Rule #19 ("Implement loading, empty,
+error, disabled, and success states") was only partially met — every list
+screen showed a plain "Loading X..." text line instead of a layout-shaped
+placeholder, there was no Next.js `app/not-found.tsx` at all, and
+search-not-found states were bare text with no icon. Added on request,
+covering every list/detail screen and both 404 cases (route-level and a
+missing recipe):
+
+- **New `features/shared/`** (`EmptyState`, `NotFoundPanel`, barrel
+  `index.ts`) — the first feature folder that isn't one product feature but
+  a cross-feature UI primitive, following the precedent already set by
+  `features/app-shell` (also cross-cutting, not owned by one screen). Kept
+  out of `components/ui/` since ARCHITECTURE.md reserves that folder for
+  shadcn-generated primitives only.
+- **Skeleton primitive**: added via `npx shadcn@latest add skeleton`
+  (matches DEVELOPMENT.md's "default to shadcn primitives, add with the
+  CLI" convention) — see FIXES.md for a generator quirk this run hit
+  (`cn` imported from a nonexistent-in-this-repo `"cn"` package instead of
+  `@/lib/utils`) and how it was fixed. Per-feature skeleton components
+  (`RecipeCardSkeleton`, `RecipeFormSkeleton`, `IngredientListSkeleton`,
+  `CalendarGridSkeleton`, `ShoppingListSkeleton`) mirror each real
+  component's layout dimensions so nothing visibly reflows once data
+  arrives, replacing every "Loading X..." text line (Recipes, Recipe
+  edit form, Ingredients, Calendar grid, Shopping List, Dashboard metrics/
+  highlights, Suggested for You, the Assign Recipe dialog, and the
+  Calendar's read-only recipe details dialog).
+- **`EmptyState`** (icon + message, optional action) replaces bespoke
+  empty-state markup for: Recipes search-not-found (`SearchX`) and
+  no-recipes-yet (`UtensilsCrossed`), Ingredients search-not-found
+  (`SearchX`), the Assign Recipe dialog's no-match state (`SearchX`),
+  Suggested for You's no-history state (`Sparkles`), and Shopping List's
+  no-meals-assigned state (`ShoppingCart`, refactored from an inline block
+  with identical markup — pure dedup, no behavior change).
+- **Route-level 404** (`app/not-found.tsx`): an async Server Component
+  (Next.js renders this for any unmatched route or an explicit
+  `notFound()`, inside the root layout only — it never inherits a nested
+  layout's nav) that calls `auth()` itself to decide the shell: signed-in
+  users get `AppNav` + a centered `NotFoundPanel` linking back to
+  `/dashboard`; signed-out users get a bare centered card (no nav exists
+  pre-auth, same treatment as the Login screen) linking to `/login`.
+- **Resource-level 404 (a deleted/foreign recipe)** is handled *inline*,
+  not via the framework's `notFound()`: `RecipeEditLoader` fetches the
+  recipe client-side via React Query, so existence/ownership is only known
+  after the route has already resolved successfully. `lib/api/recipes.ts`
+  gained `RecipeNotFoundError` (same pattern as `IngredientConflictError`
+  in `lib/api/ingredients.ts`) thrown when `fetchRecipe` gets a 404;
+  `useRecipe` disables retry specifically for that error (retrying a 404
+  can never succeed — without this the not-found panel only appeared after
+  several seconds of pointless backoff) and `RecipeEditLoader` renders the
+  same shared `NotFoundPanel` inline when it sees that error, linking back
+  to `/recipes` instead of `/dashboard`.
+- All of the above manually verified in a real Chromium browser this
+  session (see FIXES.md's Playwright entry for how) against a locally
+  running dev server and the real Atlas cluster: throttled-network
+  screenshots of every skeleton, a signed-out and signed-in 404, a
+  nonexistent recipe id's edit page, and both Recipes/Ingredients
+  search-not-found states. Test accounts created for this check were
+  deleted from the shared Atlas cluster afterward (no other data — recipes/
+  ingredients/calendar entries — was created by them).
+
 ## Suggested for You: wired to live frequent-recipe data
 
 The Dashboard's "Suggested for You" section (DESIGN.md sections 16/17) was
