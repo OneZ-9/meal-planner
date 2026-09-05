@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Check, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/features/shared";
 import type { ShoppingListItemDTO } from "@/lib/api/shoppingList";
 import {
   formatWeekRangeLabel,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/dateWeek";
 import { useShoppingList } from "../hooks/useShoppingList";
 import { useUpdateShoppingListChecks } from "../hooks/useUpdateShoppingListChecks";
+import { ShoppingListSkeleton } from "./shopping-list-skeleton";
 
 // Formats a shopping-list line's quantity for display. "whole" items show
 // as a bare count (e.g. "3"), everything else as "<quantity> <unit>"
@@ -120,16 +122,13 @@ export const ShoppingListManager = (): ReactElement => {
         </div>
       </header>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading your list...</p>}
+      {isLoading && <ShoppingListSkeleton />}
 
       {!isLoading && totalCount === 0 && (
-        <div className="rounded-lg border border-border bg-card px-5 py-10 text-center">
-          <ShoppingCart className="mx-auto mb-3 size-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            No meals are assigned this week yet. Assign recipes on the Calendar to
-            generate a shopping list.
-          </p>
-        </div>
+        <EmptyState
+          description="No meals are assigned this week yet. Assign recipes on the Calendar to generate a shopping list."
+          icon={ShoppingCart}
+        />
       )}
 
       {!isLoading && totalCount > 0 && (

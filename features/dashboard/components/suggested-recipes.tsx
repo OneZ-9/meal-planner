@@ -2,9 +2,11 @@
 
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Sparkles } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
 import { useFrequentRecipes } from "@/features/calendar/hooks/useFrequentRecipes";
+import { EmptyState } from "@/features/shared";
 
 // "Suggested for You" (DESIGN.md sections 16/17), wired to the user's most-
 // frequently-assigned recipes across their whole calendar history — see
@@ -17,16 +19,20 @@ export const SuggestedRecipes = (): ReactElement | null => {
 
   if (isLoading) {
     return (
-      <p className="text-sm text-muted-foreground">Loading suggestions...</p>
+      <div aria-hidden className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <Skeleton className="aspect-[1.48/1] rounded-lg" key={index} />
+        ))}
+      </div>
     );
   }
 
   if (!recipes || recipes.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Assign a few recipes to your calendar and your most-used ones will
-        show up here.
-      </p>
+      <EmptyState
+        description="Assign a few recipes to your calendar and your most-used ones will show up here."
+        icon={Sparkles}
+      />
     );
   }
 
