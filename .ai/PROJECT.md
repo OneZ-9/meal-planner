@@ -88,6 +88,6 @@ Agent: for the current, maintained layout, read the "Project structure" section 
 | Env        | URL                   | Notes                                                      |
 | ---------- | --------------------- | ---------------------------------------------------------- |
 | Local      | http://localhost:3000 | `.env.local`, placeholder Mongo URI works for UI-only work |
-| Production | TBD (Vercel)          | not yet deployed                                           |
+| Production | https://mealprep-meal-planner.vercel.app | Live on Vercel, connected to `OneZ-9/meal-planner` — see `.ai/DEPLOYMENT.md` |
 
 No staging environment defined — single-tenant MVP, 2-week delivery window.

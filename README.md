@@ -1,5 +1,7 @@
 # Meal Planner + Auto Shopping List
 
+**Live**: [mealprep-meal-planner.vercel.app](https://mealprep-meal-planner.vercel.app)
+
 A full-stack meal planning app that connects a recipe library to a weekly
 calendar and auto-generates a de-duplicated, unit-normalized shopping list
 from whatever's scheduled — so the list is always a direct, accurate
@@ -91,7 +93,7 @@ revisited:
 - **State**: TanStack React Query (server state), Zustand (client state)
 - **File storage**: Vercel Blob (recipe images)
 - **Testing**: Vitest + React Testing Library
-- **Hosting target**: Vercel
+- **Hosting**: Vercel (live at [mealprep-meal-planner.vercel.app](https://mealprep-meal-planner.vercel.app))
 
 ## Getting started
 
@@ -129,13 +131,13 @@ Project conventions — feature-folder structure, state management rules, code s
 
 All five MVP modules — Authentication, Ingredients, Recipes, Calendar, and
 Shopping List — are implemented and covered by an automated test suite,
-plus recipe image upload as a post-MVP addition. Remaining work is
-deployment (not yet live on Vercel — see `.ai/DEPLOYMENT.md`) and final
-manual QA polish; see `.ai/CURRENT.md` for exactly what's outstanding.
+plus recipe image upload as a post-MVP addition. The app is deployed and
+live on Vercel (see the link at the top of this file, and
+`.ai/DEPLOYMENT.md`); remaining work is final manual QA polish — see
+`.ai/CURRENT.md` for exactly what's outstanding.
 
 ## Contributors
 
 - [Chamod Tharuka](https://github.com/OneZ-9)
 - [Adeepa Isuru](https://github.com/AdeepaGit)
 - [Mohamed Akeel](https://github.com/Akeel-Senzmate)
-- [Abhisheka Karandanagama](https://github.com/Askarandanagama)
