@@ -15,6 +15,30 @@ needed.
 Vercel, per spec Tech Stack. Next.js App Router deploys natively with no
 extra config beyond environment variables.
 
+## Continuous Integration (GitHub Actions)
+
+`.github/workflows/test.yml` runs lint (`npm run lint`), type-checking
+(`npx tsc --noEmit`), the Vitest suite (`npm test`), and a production
+build (`npm run build`) on push and on pull request targeting `test` or
+`main` — the two merge points in this project's branch flow (`dev` →
+`test`, `test` → `main`). This is independent of and additional to
+Vercel's own Git-integration auto-deploy (below): Vercel still builds and
+deploys on push to `main`/Preview branches regardless of this workflow's
+result, so **branch protection must be turned on for this to actually
+block a bad merge** — see "Enabling branch protection" below.
+
+The lint/type-check/test steps need no secrets (the Vitest suite mocks
+auth and the database entirely — see `.ai/DEVELOPMENT.md` "Testing"). The
+build step reads `MONGODB_URI` and `AUTH_SECRET` from GitHub Actions
+secrets; `lib/mongodb.ts` only requires `MONGODB_URI` to be a non-empty
+string to build successfully; it does not need to be a real, reachable
+connection string since nothing calls the database during `next build`
+itself. **Without these two repo secrets configured, the "Production
+build" step will fail** (empty string is falsy, so the missing-env-var
+throw in `lib/mongodb.ts` still fires) — add them under GitHub repo →
+Settings → Secrets and variables → Actions before relying on this
+workflow.
+
 ## Planned procedure
 
 1. Connect the GitHub repo (`OneZ-9/meal-planner.git`) to a new Vercel

@@ -16,6 +16,21 @@ end-to-end functional check against the live deployment.
 
 ## Recent work
 
+- Added CI: `.github/workflows/test.yml` (GitHub Actions), on explicit
+  request, to actually automate the lint/type-check/test/build checks
+  that had previously only ever been run manually. Triggers on push and
+  on pull request targeting `test` or `main` — the two merge points in
+  this project's branch flow (`dev` → `test`, `test` → `main`), per the
+  user's request. Steps: `npm ci`, `npm run lint`, `npx tsc --noEmit`,
+  `npm test` (Vitest — needs no secrets, since the suite mocks auth/DB
+  entirely), then `npm run build` (needs `MONGODB_URI`/`AUTH_SECRET` as
+  GitHub Actions repo secrets — `lib/mongodb.ts` throws on a _missing_
+  var, and an unset secret resolves to an empty string, so the build step
+  will fail until those two secrets are added under repo Settings →
+  Secrets and variables → Actions). **Branch protection is not yet
+  turned on** — as-is, this workflow reports pass/fail but doesn't block
+  a merge; see `.ai/DEPLOYMENT.md` "Continuous Integration" → "Enabling
+  branch protection" for the steps to actually gate `test`/`main` on it.
 - Added skeleton loading components, a 404 page, and search-not-found empty
   states across the app (requested directly, not tied to a specific user
   story — closes the gap in DESIGN.md Rule #19). New `features/shared/`

@@ -160,7 +160,15 @@ Shopping List).
       against the real Atlas cluster (register → login →
       search/create/update → ownership + duplicate checks → paged
       through all 148 seeded ingredients, then cleaned up).
-- [ ] Vercel project connected (see DEPLOYMENT.md).
+- [x] Vercel project connected and deployed — live at
+      https://mealprep-meal-planner.vercel.app (see DEPLOYMENT.md).
+- [x] CI: `.github/workflows/test.yml` (GitHub Actions) runs lint,
+      type-check, `npm test` (Vitest), and `npm run build` on push/PR
+      targeting `test` or `main` (the project's `dev` → `test` → `main`
+      merge flow). Needs `MONGODB_URI`/`AUTH_SECRET` repo secrets for the
+      build step to succeed, and branch protection turned on (not yet
+      enabled) for it to actually block a bad merge — see DEPLOYMENT.md
+      "Continuous Integration".
 - [x] Shopping List page UI (`/shopping-list`) — built, see the Shopping
       List module entry above. All six planned pages now exist: Login,
       Dashboard, Ingredients, Recipes (`/recipes`, `/recipes/new`,
