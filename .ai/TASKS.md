@@ -160,7 +160,15 @@ Shopping List).
       against the real Atlas cluster (register → login →
       search/create/update → ownership + duplicate checks → paged
       through all 148 seeded ingredients, then cleaned up).
-- [ ] Vercel project connected (see DEPLOYMENT.md).
+- [x] Vercel project connected and deployed — live at
+      https://mealprep-meal-planner.vercel.app (see DEPLOYMENT.md).
+- [x] CI: `.github/workflows/test.yml` (GitHub Actions) runs lint,
+      type-check, `npm test` (Vitest), and `npm run build` on push/PR
+      targeting `test` or `main` (the project's `dev` → `test` → `main`
+      merge flow). Needs `MONGODB_URI`/`AUTH_SECRET` repo secrets for the
+      build step to succeed, and branch protection turned on (not yet
+      enabled) for it to actually block a bad merge — see DEPLOYMENT.md
+      "Continuous Integration".
 - [x] Shopping List page UI (`/shopping-list`) — built, see the Shopping
       List module entry above. All six planned pages now exist: Login,
       Dashboard, Ingredients, Recipes (`/recipes`, `/recipes/new`,
@@ -185,6 +193,21 @@ Shopping List).
       upload (Vercel Blob)" for why. Verified with `npx tsc --noEmit`,
       `npm run lint`, `npm run build`, and `npx vitest run` (19 files,
       147 tests).
+
+- [x] Skeleton loading, empty/search-not-found states, and a 404 page
+      (DESIGN.md Rule #19 — loading/empty/error/success states — was only
+      partially met before this). New `features/shared/` (`EmptyState`,
+      `NotFoundPanel`); per-feature skeleton components for Recipes,
+      Ingredients, Calendar, Shopping List, Dashboard, Suggested for You,
+      the Assign Recipe dialog, and the Calendar recipe-details dialog;
+      `app/not-found.tsx` (route-level 404, shell-aware via `auth()`); a
+      new `RecipeNotFoundError` so a deleted/foreign recipe's edit page
+      shows the shared not-found panel instead of a generic error. See
+      DECISIONS.md "Skeleton loading, empty/search-not-found states, and a
+      404 page" for the full breakdown. Verified with `npx tsc --noEmit`,
+      `npm run lint`, `npm run build`, `npx vitest run` (20 files, 151
+      tests), and a real Chromium browser session (registered/deleted
+      throwaway Atlas test accounts) covering every new state.
 
 ## Explicitly deferred (Future Features, not MVP)
 

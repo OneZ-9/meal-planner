@@ -16,6 +16,53 @@ end-to-end functional check against the live deployment.
 
 ## Recent work
 
+- Added CI: `.github/workflows/test.yml` (GitHub Actions), on explicit
+  request, to actually automate the lint/type-check/test/build checks
+  that had previously only ever been run manually. Triggers on push and
+  on pull request targeting `test` or `main` — the two merge points in
+  this project's branch flow (`dev` → `test`, `test` → `main`), per the
+  user's request. Steps: `npm ci`, `npm run lint`, `npx tsc --noEmit`,
+  `npm test` (Vitest — needs no secrets, since the suite mocks auth/DB
+  entirely), then `npm run build` (needs `MONGODB_URI`/`AUTH_SECRET` as
+  GitHub Actions repo secrets — `lib/mongodb.ts` throws on a _missing_
+  var, and an unset secret resolves to an empty string, so the build step
+  will fail until those two secrets are added under repo Settings →
+  Secrets and variables → Actions). **Branch protection is not yet
+  turned on** — as-is, this workflow reports pass/fail but doesn't block
+  a merge; see `.ai/DEPLOYMENT.md` "Continuous Integration" → "Enabling
+  branch protection" for the steps to actually gate `test`/`main` on it.
+- Added skeleton loading components, a 404 page, and search-not-found empty
+  states across the app (requested directly, not tied to a specific user
+  story — closes the gap in DESIGN.md Rule #19). New `features/shared/`
+  (`EmptyState`, `NotFoundPanel`) — the first "cross-feature UI primitive"
+  folder, same precedent as `features/app-shell`. Every list/detail screen
+  that previously showed plain "Loading X..." text now shows a
+  layout-shaped skeleton (`components/ui/skeleton.tsx`, added via
+  `npx shadcn@latest add skeleton` — see FIXES.md for a generator quirk it
+  hit, `cn` imported from a nonexistent `"cn"` package instead of
+  `@/lib/utils`, fixed by hand): Recipes grid, Recipe edit form,
+  Ingredients list, Calendar grid, Shopping List, Dashboard metrics/
+  highlights, Suggested for You, the Assign Recipe dialog, and the
+  Calendar's recipe-details dialog. `app/not-found.tsx` is a new
+  route-level 404 (an async Server Component that calls `auth()` itself to
+  decide whether to render inside `AppNav` or as a bare centered card).
+  Editing a deleted/foreign recipe now shows the same shared
+  `NotFoundPanel` inline instead of a generic error — new
+  `RecipeNotFoundError` in `lib/api/recipes.ts`, thrown on a 404 response
+  and given a no-retry rule in `useRecipe` (retrying a 404 can't succeed).
+  See DECISIONS.md for the full breakdown of what changed and why.
+  `npx tsc --noEmit`, `npm run lint`, `npm run build`, and `npx vitest run`
+  (20 files, 151 tests) all pass. **Manually verified in a real Chromium
+  browser this session** (cached `playwright-core` via `NODE_PATH` + a
+  CommonJS `node -e` script — no file copying needed, a simpler variant of
+  the existing FIXES.md workaround, documented there): registered three
+  throwaway accounts against the real Atlas cluster and screenshotted every
+  new state — skeletons under artificial network throttling for
+  Recipes/Calendar/Shopping List/Dashboard, the signed-out and signed-in
+  404, a nonexistent recipe id's edit page, Recipes/Ingredients
+  search-not-found, and the Assign Recipe dialog's empty state. All three
+  test accounts were deleted from Atlas afterward (they created no other
+  data — no recipes/ingredients/calendar entries).
 - Deployed to Vercel (connected via Vercel's Git integration to
   `OneZ-9/meal-planner`, reported by the user) — live at
   https://mealprep-meal-planner.vercel.app. Verified with an HTTP smoke
@@ -514,6 +561,15 @@ reproduces — `npx vitest run` passes, see FIXES.md).
 
 ## Validation state
 
+- Skeleton loading/empty/404 states: `npx tsc --noEmit`, `npm run lint`,
+  `npm run build`, and `npx vitest run` (20 files, 151 tests, unchanged
+  from before — this work added no new test files, only UI states) all
+  pass. Manually verified end-to-end in a real Chromium browser against
+  the local dev server and real Atlas cluster — see "Recent work" above
+  for exactly what was checked. This is the first UI-only change this
+  project has fully browser-verified without the usual "no browser
+  automation tool available" caveat; see FIXES.md for the (now simpler)
+  method.
 - Suggested for You (frequent-recipes): `npx tsc --noEmit`, `npm run
 lint`, `npm run build`, and `npx vitest run` (20 files, 151 tests) all
   pass. Not manually exercised in a live browser (no browser automation

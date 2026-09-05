@@ -3,7 +3,7 @@
 import type { ReactElement } from "react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, SearchX, UtensilsCrossed, X } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { EmptyState } from "@/features/shared";
 import type { RecipeDTO } from "@/lib/api/recipes";
 import { useRecipes } from "../hooks/useRecipes";
 import { useDeleteRecipe } from "../hooks/useDeleteRecipe";
 import { useRecipeCalendarUsage } from "../hooks/useRecipeCalendarUsage";
 import { RecipeCard } from "./recipe-card";
+import { RecipeCardSkeleton } from "./recipe-card-skeleton";
 
 const allRecipesFilter = "all";
 
@@ -146,27 +148,35 @@ export const RecipesManager = (): ReactElement => {
         </div>
 
         {isLoading && (
-          <p className="text-sm text-muted-foreground">Loading recipes...</p>
+          <div
+            aria-hidden
+            className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          >
+            {Array.from({ length: 6 }, (_, index) => (
+              <RecipeCardSkeleton key={index} />
+            ))}
+          </div>
         )}
 
         {!isLoading && filteredRecipes.length === 0 && (
-          <div className="rounded-lg border border-border bg-card px-5 py-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              {debouncedQuery
+          <EmptyState
+            action={
+              !debouncedQuery &&
+              activeTag === allRecipesFilter && (
+                <Link className={buttonVariants({})} href="/recipes/new">
+                  <Plus className="size-[18px]" /> Create Recipe
+                </Link>
+              )
+            }
+            description={
+              debouncedQuery
                 ? `No recipes match "${debouncedQuery}".`
                 : activeTag !== allRecipesFilter
                   ? `No recipes tagged "${activeTag}".`
-                  : "No recipes yet. Create your first recipe to get started."}
-            </p>
-            {!debouncedQuery && activeTag === allRecipesFilter && (
-              <Link
-                className={buttonVariants({ className: "mt-4" })}
-                href="/recipes/new"
-              >
-                <Plus className="size-[18px]" /> Create Recipe
-              </Link>
-            )}
-          </div>
+                  : "No recipes yet. Create your first recipe to get started."
+            }
+            icon={debouncedQuery ? SearchX : UtensilsCrossed}
+          />
         )}
 
         {!isLoading && filteredRecipes.length > 0 && (

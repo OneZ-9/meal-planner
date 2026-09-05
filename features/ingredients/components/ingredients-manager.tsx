@@ -2,10 +2,11 @@
 
 import type { ReactElement } from "react";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Pencil, Plus, Search, X } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, SearchX, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/features/shared";
 import {
   IngredientConflictError,
   type IngredientDTO,
@@ -15,6 +16,7 @@ import { useInfiniteIngredients } from "../hooks/useInfiniteIngredients";
 import { useCreateIngredient } from "../hooks/useCreateIngredient";
 import { useUpdateIngredient } from "../hooks/useUpdateIngredient";
 import { IngredientFormDialog } from "./ingredient-form-dialog";
+import { IngredientListSkeleton } from "./ingredient-list-skeleton";
 
 type DialogState =
   | { mode: "create" }
@@ -189,18 +191,18 @@ export const IngredientsManager = (): ReactElement => {
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card">
-        {isLoading && (
-          <p className="px-5 py-6 text-sm text-muted-foreground">
-            Loading ingredients...
-          </p>
-        )}
+        {isLoading && <IngredientListSkeleton />}
 
         {!isLoading && ingredients.length === 0 && (
-          <p className="px-5 py-6 text-sm text-muted-foreground">
-            {debouncedQuery
-              ? `No ingredients match "${debouncedQuery}".`
-              : "No ingredients yet."}
-          </p>
+          <EmptyState
+            className="rounded-none border-none"
+            description={
+              debouncedQuery
+                ? `No ingredients match "${debouncedQuery}".`
+                : "No ingredients yet."
+            }
+            icon={SearchX}
+          />
         )}
 
         {!isLoading &&

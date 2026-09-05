@@ -77,6 +77,11 @@ The specification explicitly defines recipe edits as live references rather than
 - `app/page.tsx` (and other route files) are presentation-only: they import a feature's top-level component from `features/` and render it. See the "contain no state management logic" rule in Page and Layout file conventions below.
 - Existing auth, app-shell, and dashboard UI follows this structure under
   `features/`; new feature UI must continue the same pattern.
+- A UI primitive with no feature-specific logic that's genuinely reused
+  across multiple features (e.g. `features/shared`'s `EmptyState`/
+  `NotFoundPanel`) lives in its own `features/shared/` folder, same
+  precedent as `features/app-shell` — not in `components/ui/` (shadcn
+  primitives only) and not duplicated per-feature.
 
 Avoid introducing:
 
@@ -108,7 +113,8 @@ The defined technology stack is Next.js App Router with TypeScript/React, Tailwi
 │   ├── calendar/         # Server-protected Weekly Plan (Calendar) page
 │   └── layout.tsx, page.tsx, providers.tsx, globals.css
 ├── components/ui/     # shadcn/ui-generated primitives (do not hand-edit; see Stack notes)
-├── features/          # Auth, app shell, dashboard, ingredients, recipes, and calendar feature UI
+├── features/          # Auth, app shell, dashboard, ingredients, recipes, calendar,
+│                      # shopping-list, and shared (cross-feature EmptyState/NotFoundPanel) UI
 ├── lib/               # Shared helpers, validation, MongoDB, and Mongoose models
 ├── auth.ts            # NextAuth credentials/session configuration
 ├── types/             # NextAuth session type augmentation
