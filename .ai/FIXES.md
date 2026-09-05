@@ -4,6 +4,42 @@
 > / Solution / Related. Skip one-off typos that won't happen again.
 
 ---
+### CI's `npx tsc --noEmit` fails on `Cannot find name 'LayoutProps'`/`'PageProps'`, but it passes locally
+**Symptom**: `.github/workflows/test.yml`'s "Type-check" step failed on the
+first real run (triggered by a `dev` → `test` merge) with:
+```
+app/layout.tsx(22,35): error TS2304: Cannot find name 'LayoutProps'.
+app/recipes/[id]/edit/page.tsx(14,10): error TS2304: Cannot find name 'PageProps'.
+```
+even though `npx tsc --noEmit` passes cleanly on every developer machine.
+**Cause**: `LayoutProps`/`PageProps` are Next.js 16's typed-routes helper
+types (see `.ai/PROJECT.md` "Stack notes" — `app/layout.tsx` deliberately
+uses `LayoutProps<"/">` instead of a hand-written prop type). They aren't
+hand-declared anywhere in the repo — Next.js generates them as ambient
+`.d.ts` files under `.next/types/` (referenced in `tsconfig.json`'s
+`include`), as a side effect of running `next dev` or `next build`. Every
+local machine has a `.next/` directory lying around from ordinary
+development, so `tsc` always finds them locally. A CI runner starts from a
+fresh `git checkout` with no `.next/` at all, so `tsc` genuinely can't find
+the types — this isn't a CI-vs-local Node/TypeScript version mismatch, the
+types simply don't exist yet at that point in a clean checkout.
+**Solution**: add a `next typegen` step (Next.js's dedicated "generate the
+route/layout/page types without a full build" command) before lint/tsc in
+the workflow:
+```yaml
+- name: Generate Next.js route types
+  run: npx next typegen
+```
+Verified by reproducing locally first (`rm -rf .next && npx tsc --noEmit`
+reproduces the exact CI error), then confirming `npx next typegen`
+followed by the same `tsc` command passes clean. `npm run lint` was
+checked too and turns out not to need this (no type-aware ESLint rules
+configured), but the typegen step is placed before both lint and tsc in
+the workflow for simplicity/robustness rather than depending on that.
+**Related**: `.github/workflows/test.yml`, `.ai/DEPLOYMENT.md`
+"Continuous Integration".
+
+---
 ### "No browser automation tool available" — not actually true on this machine
 **Symptom**: Many past sessions (see the repeated caveat throughout
 CURRENT.md's "Recent work"/"Validation state" entries) skipped live-browser
